@@ -145,7 +145,7 @@ exports.login = async (req, res) => {
 
     if (user.isBlocked) {
       return res.status(403).json({ error: 'Your account has been blocked' });
-    }
+    } 
 
     // Set custom expirations if rememberMe is true
     const expiresIn = rememberMe ? '30d' : process.env.JWT_EXPIRES_IN || '1d'; 
@@ -162,14 +162,7 @@ exports.login = async (req, res) => {
       success: true,
       accessToken,
       refreshToken,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        profilePicture: user.profilePicture
-      }
+      user:user
     });
   } catch (error) {
     console.error('Login error:', error);
