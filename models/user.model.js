@@ -126,7 +126,28 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  
   directMessages: {
+    type: Boolean,
+    default: false
+  },
+  clientReview: {
+    type: Boolean,
+    default: false
+  },
+  clientNewRegistration: {
+    type: Boolean,
+    default: false
+  },
+  hellocianactivities: {
+    type: Boolean,
+    default: false
+  },
+  emailSupportTickets: {
+    type: Boolean,
+    default: false
+  },
+  projectUpdates: {
     type: Boolean,
     default: false
   },
