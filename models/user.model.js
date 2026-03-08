@@ -12,21 +12,67 @@ const UserSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true
+  },
   email: {
     type: String,
-    required: true,
     unique: true,
+    sparse: true,   // allows multiple docs with no email
     lowercase: true,
+    trim: true
+  },
+  phone: {
+    type: String,
     trim: true
   },
   password: {
     type: String,
-    required: true,
     minlength: 6
+  },
+  skills: {
+    type: [String],
+    default: []
+  },
+  keywords: {
+    type: [String],
+    default: []
+  },
+  bio: {
+    type: String,
+    default: ''
   },
   profilePicture: {
     type: String,
     default: ""
+  },
+  address: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  city: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  postalCode: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  country: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  timeZone: {
+    type: String,
+    default: "UTC+00:00"
   },
   role: {
     type: String,
@@ -37,6 +83,9 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+
+
+  
   activationCode: {
     type: String
   },
@@ -60,14 +109,34 @@ const UserSchema = new mongoose.Schema({
   blockedAt: {
     type: Date
   },
-  resetPasswordToken: String, 
+  resetPasswordToken: String,
   resetPasswordExpires: Date,
+  passwordSetupToken: String,
+  passwordSetupTokenExpires: Date,
+  isProfileComplete: {
+    type: Boolean,
+    default: false
+  },
+  // Settings Change OTP
+  settingsChangeCode: String,
+  settingsChangeCodeExpires: Date,
+
+  // Preferences
+  emailNotifications: {
+    type: Boolean,
+    default: true
+  },
+  directMessages: {
+    type: Boolean,
+    default: false
+  },
 }, { 
   timestamps: true
 });
 
 UserSchema.pre("save", async function(next) {
   if (!this.isModified("password")) return next();
+  if (!this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });

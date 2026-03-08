@@ -22,7 +22,30 @@ exports.createCategory = async (req, res) => {
 
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find().sort({ name: 1 });
+    const categories = await Category.aggregate([
+      {
+        $lookup: {
+          from: 'gigs',
+          localField: '_id',
+          foreignField: 'category',
+          as: 'gigs'
+        }
+      },
+      {
+        $addFields: {
+          gigCount: { $size: '$gigs' }
+        }
+      },
+      {
+        $project: {
+          gigs: 0 
+        }
+      },
+      {
+        $sort: { name: 1 }
+      }
+    ]);
+
     res.json({ success: true, categories });
   } catch (error) {
     console.error('Get categories error:', error);

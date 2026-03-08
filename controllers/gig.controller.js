@@ -39,7 +39,34 @@ exports.getAllGigs = async (req, res) => {
     const query = { isActive: true };
 
     if (category) {
-      query.category = category;
+      if (category !== 'all' && category !== 'all-services') {
+        // Check if category is an ObjectId or a slug
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(category);
+        
+        if (isObjectId) {
+          query.category = category;
+        } else {
+          // It's a slug, find the category first
+          const Category = require('../models/category.model');
+          const categoryDoc = await Category.findOne({ slug: category });
+          
+          if (categoryDoc) {
+            query.category = categoryDoc._id;
+          } else {
+            // If category slug not found, maybe return empty or ignore?
+            // Let's return empty to be correct
+            return res.json({
+              success: true,
+              gigs: [],
+              pagination: {
+                total: 0,
+                page: parseInt(page),
+                pages: 0
+              }
+            });
+          }
+        }
+      }
     }
 
     if (search) {
@@ -58,7 +85,7 @@ exports.getAllGigs = async (req, res) => {
     }
 
     const gigs = await Gig.find(query)
-      .populate('category', 'name')
+      .populate('category', 'name slug')
       .populate('creator', 'firstName lastName profilePicture')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -89,13 +116,12 @@ exports.getGigById = async (req, res) => {
       .populate('category', 'name description')
       .populate('tags', 'name')
       .populate('creator', 'firstName lastName profilePicture')
-      .populate('hellocians', 'firstName lastName profilePicture');
+      .populate('hellocians', '_id firstName lastName username bio profilePicture');
 
     if (!gig) {
       return res.status(404).json({ error: 'Gig not found' });
     }
 
-    // Calculate average rating
     const avgRating = gig.starNumber > 0 ? gig.totalStars / gig.starNumber : 0;
 
     res.json({ success: true, gig: { ...gig.toObject(), avgRating } });
@@ -113,13 +139,12 @@ exports.getGigBySlug = async (req, res) => {
       .populate('category', 'name description')
       .populate('tags', 'name')
       .populate('creator', 'firstName lastName profilePicture')
-      .populate('hellocians', 'firstName lastName profilePicture');
+      .populate('hellocians', '_id firstName lastName username bio profilePicture');
 
     if (!gig) {
       return res.status(404).json({ error: 'Gig not found' });
     }
 
-    // Calculate average rating
     const avgRating = gig.starNumber > 0 ? gig.totalStars / gig.starNumber : 0;
 
     res.json({ success: true, gig: { ...gig.toObject(), avgRating } });

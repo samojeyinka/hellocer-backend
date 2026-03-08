@@ -1,5 +1,6 @@
 const User = require('../models/user.model');
 const { generateToken, generateRefreshToken } = require('../utils/generateToken');
+const { generateUsername } = require('../utils/generateCode');
 
 exports.googleAuth = async (req, res) => {
   try {
@@ -31,9 +32,11 @@ exports.googleAuth = async (req, res) => {
       });
     } else {
       // User doesn't exist - register (no activation needed)
+      const username = generateUsername(firstName, lastName);
       const newUser = await User.create({
         firstName,
         lastName,
+        username,
         email,
         password: Math.random().toString(36).slice(-16), // Random password
         profilePicture,
@@ -98,9 +101,11 @@ exports.appleAuth = async (req, res) => {
       });
     } else {
       // User doesn't exist - register (no activation needed)
+      const username = generateUsername(firstName, lastName);
       const newUser = await User.create({
         firstName,
         lastName,
+        username,
         email,
         password: Math.random().toString(36).slice(-16), // Random password
         profilePicture,
@@ -168,9 +173,11 @@ exports.twitterAuth = async (req, res) => {
       });
     } else {
       // User doesn't exist - register (no activation needed)
+      const username = generateUsername(firstName, lastName);
       const newUser = await User.create({
         firstName,
         lastName,
+        username,
         email,
         password: Math.random().toString(36).slice(-16),
         profilePicture,

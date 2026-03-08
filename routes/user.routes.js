@@ -7,6 +7,12 @@ const { restrictTo, checkActivation } = require('../middleware/roleCheck.middlew
 router.use(protect, checkActivation);
 
 router.put('/profile', userController.updateProfile);
+router.post('/request-settings-change', userController.requestSettingsChange);
+router.put('/change-password', userController.changePassword);
+router.put('/email', userController.changeEmail);
+router.put('/preferences', userController.updatePreferences);
+router.get('/check-username', userController.checkUsernameAvailability);
+router.put('/username', userController.updateUsername);
 router.delete('/account', userController.deleteOwnAccount);
 router.get('/:userId', userController.getUserById);
 

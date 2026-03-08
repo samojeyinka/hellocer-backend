@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.0",
     "morgan": "^1.10.1",
+    "nodemailer": "^8.0.1",
     "paypal-rest-sdk": "^1.8.1",
     "resend": "^6.1.2",
     "socket.io": "^4.8.1"

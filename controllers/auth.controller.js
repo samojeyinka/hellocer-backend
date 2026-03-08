@@ -1,11 +1,20 @@
 const User = require('../models/user.model');
 const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/generateToken');
-const { generateActivationCode, generateResetToken } = require('../utils/generateCode');
+const { generateActivationCode, generateResetToken, generateUsername } = require('../utils/generateCode');
 const EmailService = require('../services/email.service');
-
+const crypto = require('crypto');
 exports.register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role = 'user' } = req.body;
+    const { firstName, lastName, email, password, agreeToTerms, role = 'user' } = req.body;
+
+     if(!agreeToTerms){
+      return res.status(400).json({ error: 'Please agree to the terms and conditions' });
+    }
+
+    const passwordRegex = /^(?=(?:[^A-Z]*[A-Z]){3})(?=(?:[^a-z]*[a-z]){2})(?=(?:\D*\d){2})(?=.*[^a-zA-Z0-9]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long, contain at least 3 uppercase letters, 2 lowercase letters, 2 digits, and 1 special character.' });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -14,19 +23,25 @@ exports.register = async (req, res) => {
 
     const activationCode = generateActivationCode();
     const activationCodeExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const username = generateUsername(firstName, lastName);
+    const hashedActivationCode = crypto.createHash('sha256').update(activationCode).digest('hex');
+
+
 
     const user = await User.create({
       firstName,
       lastName,
+      username,
       email,
       password,
       role,
-      activationCode,
+      activationCode: hashedActivationCode,
       activationCodeExpires,
       isActivated: false
     });
 
-    await console.log(email, firstName, activationCode);
+    // await console.log(email, firstName, activationCode);
+
 
     res.status(201).json({
       success: true,
@@ -56,29 +71,13 @@ exports.activateAccount = async (req, res) => {
     user.isActivated = true;
     user.activationCode = undefined;
     user.activationCodeExpires = undefined;
-
-    // Generate both tokens
-    const accessToken = generateToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
-
-    user.refreshToken = refreshToken;
     await user.save();
 
     // await EmailService.sendWelcomeEmail(user.email, user.firstName);
 
     res.json({
       success: true,
-      message: 'Account activated successfully',
-      accessToken,
-      refreshToken,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        profilePicture: user.profilePicture
-      }
+      message: 'Account activated successfully. Please log in.'
     });
   } catch (error) {
     console.error('Activation error:', error);
@@ -101,17 +100,20 @@ exports.resendActivationCode = async (req, res) => {
 
     const activationCode = generateActivationCode();
     const activationCodeExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const hashedActivationCode = crypto.createHash('sha256').update(activationCode).digest('hex');
 
-    user.activationCode = activationCode;
+    user.activationCode = hashedActivationCode;
     user.activationCodeExpires = activationCodeExpires;
     await user.save();
 
     // await EmailService.sendActivationEmail(email, user.firstName, activationCode);
 
+    console.log(hashedActivationCode);
+    
     res.json({
       success: true,
       message: 'Activation code resent successfully',
-      activationCode: activationCode
+      activationCode: hashedActivationCode
     });
   } catch (error) {
     console.error('Resend activation error:', error);
@@ -121,7 +123,7 @@ exports.resendActivationCode = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -145,9 +147,13 @@ exports.login = async (req, res) => {
       return res.status(403).json({ error: 'Your account has been blocked' });
     }
 
+    // Set custom expirations if rememberMe is true
+    const expiresIn = rememberMe ? '30d' : process.env.JWT_EXPIRES_IN || '1d'; 
+    const refreshExpiresIn = rememberMe ? '60d' : process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+
     // Generate both tokens
-    const accessToken = generateToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    const accessToken = generateToken(user._id, expiresIn);
+    const refreshToken = generateRefreshToken(user._id, refreshExpiresIn);
 
     user.refreshToken = refreshToken;
     await user.save();

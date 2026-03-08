@@ -19,6 +19,7 @@ const categoryRoutes = require('./routes/category.routes');
 const reviewRoutes = require('./routes/review.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const hellocianRoutes = require('./routes/hellocian.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -53,6 +54,7 @@ app.use('/api', categoryRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/hellocians', hellocianRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -61,7 +63,7 @@ app.get('/health', (req, res) => {
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({ error: 'Route not found' }); 
 });
 
 // Error handler

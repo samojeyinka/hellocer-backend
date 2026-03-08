@@ -1,13 +1,40 @@
-const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
 
 class EmailService {
   async sendActivationEmail(email, firstName, activationCode) {
     try {
       const activationLink = `${process.env.FRONTEND_URL}/activate?code=${activationCode}`;
       
-      const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'onboarding@yourdomain.com',
+      if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 're_123') {
+        console.log('--- EMAIL DRY RUN ---');
+        console.log(`To: ${email}`);
+        console.log(`Subject: Activate Your Account`);
+        console.log(`Code: ${activationCode}`);
+        console.log(`Link: ${activationLink}`);
+        console.log('---------------------');
+        return { id: 'dry_run' };
+      }
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- EMAIL DRY RUN ---');
+        console.log(`To: ${email}`);
+        console.log(`Subject: Activate Your Account`);
+        console.log(`Code: ${activationCode}`);
+        console.log(`Link: ${activationLink}`);
+        console.log('---------------------');
+        return { id: 'dry_run' };
+      }
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
         to: email,
         subject: 'Activate Your Account',
         html: `
@@ -25,14 +52,10 @@ class EmailService {
             <p>If you didn't create this account, please ignore this email.</p>
           </div>
         `
-      });
+      };
 
-      if (error) {
-        console.error('Email sending error:', error);
-        throw error;
-      }
-
-      return data;
+      const info = await transporter.sendMail(mailOptions);
+      return info;
     } catch (error) {
       console.error('Failed to send activation email:', error);
       throw error;
@@ -41,8 +64,10 @@ class EmailService {
 
   async sendWelcomeEmail(email, firstName) {
     try {
-      const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'onboarding@yourdomain.com',
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return;
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
         to: email,
         subject: 'Welcome to Our Platform!',
         html: `
@@ -58,10 +83,9 @@ class EmailService {
             </a>
           </div>
         `
-      });
+      };
 
-      if (error) throw error;
-      return data;
+      return await transporter.sendMail(mailOptions);
     } catch (error) {
       console.error('Failed to send welcome email:', error);
     }
@@ -71,8 +95,18 @@ class EmailService {
     try {
       const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
       
-      const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'onboarding@yourdomain.com',
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- EMAIL DRY RUN ---');
+        console.log(`To: ${email}`);
+        console.log(`Subject: Password Reset Request`);
+        console.log(`Token: ${resetToken}`);
+        console.log(`Link: ${resetLink}`);
+        console.log('---------------------');
+        return { id: 'dry_run' };
+      }
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
         to: email,
         subject: 'Password Reset Request',
         html: `
@@ -90,12 +124,48 @@ class EmailService {
             <p>If you didn't request this, please ignore this email.</p>
           </div>
         `
-      });
+      };
 
-      if (error) throw error;
-      return data;
+      return await transporter.sendMail(mailOptions);
     } catch (error) {
       console.error('Failed to send password reset email:', error);
+      throw error;
+    } 
+  }
+
+  async sendSettingsChangeOTP(email, firstName, otp) {
+    try {
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- EMAIL DRY RUN ---');
+        console.log(`To: ${email}`);
+        console.log(`Subject: Account Settings Verification Code`);
+        console.log(`OTP: ${otp}`);
+        console.log('---------------------');
+        return { id: 'dry_run' };
+      }
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: 'Account Settings Verification Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Verification Code</h2>
+            <p>Hi ${firstName},</p>
+            <p>You requested to change secure settings on your account.</p>
+            <p>Please enter the following 6-letter verification code to authorize this change:</p>
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <span style="font-size: 24px; letter-spacing: 5px; font-weight: bold; color: #333;">${otp}</span>
+            </div>
+            <p>This code will expire in 15 minutes.</p>
+            <p>If you didn't request this change, please change your password immediately and contact support.</p>
+          </div>
+        `
+      };
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send verification OTP email:', error);
       throw error;
     }
   }
