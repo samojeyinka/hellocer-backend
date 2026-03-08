@@ -1,7 +1,7 @@
 const User = require('../models/user.model');
 const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/generateToken');
 const { verify } = require('otplib');
-const { generateActivationCode, generateResetToken, generateUsername } = require('../utils/generateCode');
+const { generateActivationCode, generateResetToken, generateUsername, generateSixAlphabetCode } = require('../utils/generateCode');
 const EmailService = require('../services/email.service');
 const crypto = require('crypto');
 exports.register = async (req, res) => {
@@ -119,6 +119,112 @@ exports.resendActivationCode = async (req, res) => {
   } catch (error) {
     console.error('Resend activation error:', error);
     res.status(500).json({ error: 'Failed to resend activation code' });
+  }
+};
+
+exports.requestAdminActivation = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Admin account not found' });
+    }
+
+    if (!['admin', 'super-admin'].includes(user.role)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (user.isActivated) {
+      return res.status(400).json({ error: 'Account already activated' });
+    }
+
+    const activationCode = generateSixAlphabetCode();
+    const activationCodeExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const hashedActivationCode = crypto.createHash('sha256').update(activationCode).digest('hex');
+
+    user.activationCode = hashedActivationCode;
+    user.activationCodeExpires = activationCodeExpires;
+    await user.save({ validateBeforeSave: false });
+
+    await EmailService.sendAdminActivationCode(email, activationCode);
+
+    res.json({
+      success: true,
+      message: 'Activation code sent to your email',
+      activationCode: activationCode // For dry run
+    });
+  } catch (error) {
+    console.error('Admin activation request error:', error);
+    res.status(500).json({ error: 'Failed to request activation' });
+  }
+};
+
+exports.verifyAdminActivationCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Code is required' });
+    
+    const hashedCode = crypto.createHash('sha256').update(code.toUpperCase()).digest('hex');
+
+    const user = await User.findOne({
+      email,
+      activationCode: hashedCode,
+      activationCodeExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired verification code' });
+    }
+
+    res.json({ success: true, message: 'Code verified successfully' });
+  } catch (error) {
+    console.error('Admin code verification error:', error);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+};
+
+exports.completeAdminActivation = async (req, res) => {
+  try {
+    const { email, code, password, firstName, lastName } = req.body;
+    if (!code) return res.status(400).json({ error: 'Code is required' });
+
+    const hashedCode = crypto.createHash('sha256').update(code.toUpperCase()).digest('hex');
+
+    const user = await User.findOne({
+      email,
+      activationCode: hashedCode,
+      activationCodeExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired session' });
+    }
+
+    const passwordRegex = /^(?=(?:[^A-Z]*[Z]){3})(?=(?:[^a-z]*[a-z]){2})(?=(?:\D*\d){2})(?=.*[^a-zA-Z0-9]).{8,}$/;
+    // Wait, the regex in my thought was slightly different. Let's use the one from the file (lines 15-18).
+    const originalRegex = /^(?=(?:[^A-Z]*[A-Z]){3})(?=(?:[^a-z]*[a-z]){2})(?=(?:\D*\d){2})(?=.*[^a-zA-Z0-9]).{8,}$/;
+    if (!originalRegex.test(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long, contain at least 3 uppercase letters, 2 lowercase letters, 2 digits, and 1 special character.' });
+    }
+
+    user.password = password;
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.username = generateUsername(firstName, lastName);
+    user.isActivated = true;
+    user.activationCode = undefined;
+    user.activationCodeExpires = undefined;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Account activated successfully. You can now log in.'
+    });
+  } catch (error) {
+    console.error('Admin activation completion error:', error);
+    res.status(500).json({ error: 'Failed to complete activation' });
   }
 };
 

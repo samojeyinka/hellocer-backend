@@ -2,7 +2,7 @@ const { generateSecret, verify, generateURI } = require('otplib');
 const qrcode = require('qrcode');
 const User = require('../models/user.model');
 
-// Generate 2FA Secret & QR Code
+
 exports.generate2FA = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -10,7 +10,7 @@ exports.generate2FA = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Generate secret
+
     const secret = generateSecret();
     const otpauth = generateURI({
       issuer: 'Hellocer',
@@ -18,17 +18,16 @@ exports.generate2FA = async (req, res) => {
       secret
     });
     
-    // Generate QR Code Data URL
     const qrCodeUrl = await qrcode.toDataURL(otpauth);
 
-    // Save secret temporarily.
+
     user.twoFactorSecret = secret;
     await user.save();
 
     res.json({
       success: true,
       qrCodeUrl,
-      secret // Optional: Show secret for manual entry if QR scan fails
+      secret 
     });
   } catch (error) {
     console.error('2FA Generation Error:', error);
@@ -36,7 +35,7 @@ exports.generate2FA = async (req, res) => {
   }
 };
 
-// Verify the first code to enable 2FA
+
 exports.verifySetup = async (req, res) => {
   try {
     const { code } = req.body;
@@ -68,7 +67,7 @@ exports.verifySetup = async (req, res) => {
   }
 };
 
-// Disable 2FA
+
 exports.disable2FA = async (req, res) => {
   try {
     const { code } = req.body;
@@ -78,7 +77,7 @@ exports.disable2FA = async (req, res) => {
       return res.status(400).json({ error: '2FA is not enabled' });
     }
 
-    // Require valid code to disable
+
     const result = await verify({
       token: code,
       secret: user.twoFactorSecret

@@ -9,6 +9,41 @@ const transporter = nodemailer.createTransport({
 });
 
 class EmailService {
+  async sendAdminActivationCode(email, activationCode) {
+    try {
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ADMIN EMAIL DRY RUN ---');
+        console.log(`To: ${email}`);
+        console.log(`Subject: Admin Account Activation`);
+        console.log(`Code: ${activationCode}`);
+        console.log('---------------------------');
+        return { id: 'dry_run' };
+      }
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: 'Admin Account Activation',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Activate Your Admin Account</h2>
+            <p>You have been added as an admin. Please use the following 6-letter verification code to activate your account:</p>
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <span style="font-size: 24px; letter-spacing: 5px; font-weight: bold; color: #174568;">${activationCode}</span>
+            </div>
+            <p>This code will expire in 24 hours.</p>
+            <p>If you didn't expect this invitation, please ignore this email.</p>
+          </div>
+        `
+      };
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send admin activation code:', error);
+      throw error;
+    }
+  }
+
   async sendActivationEmail(email, firstName, activationCode) {
     try {
       const activationLink = `${process.env.FRONTEND_URL}/activate?code=${activationCode}`;
