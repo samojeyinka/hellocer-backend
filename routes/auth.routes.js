@@ -16,7 +16,8 @@ router.post('/verify-2fa', authController.verify2FALogin);
 // Admin Activation Routes
 router.post('/admin/request-activation', authController.requestAdminActivation);
 router.post('/admin/verify-activation', authController.verifyAdminActivationCode);
-router.post('/admin/complete-activation', authController.completeAdminActivation);
+router.post('/admin/create', protect, authController.createAdmin);
+router.get('/admin/all', protect, authController.getAdmins);
 
 router.post('/refresh-token', authController.refreshAccessToken);
 router.post('/logout', protect, authController.logout);

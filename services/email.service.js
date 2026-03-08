@@ -274,6 +274,45 @@ class EmailService {
       console.error('Failed to send account blocked email:', error);
     }
   }
+
+  async sendAdminInvitation(email) {
+    try {
+      const activationLink = `${process.env.FRONTEND_URL}/admins/activate`;
+      
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ADMIN INVITATION DRY RUN ---');
+        console.log(`To: ${email}`);
+        console.log(`Subject: Admin Invitation`);
+        console.log(`Link: ${activationLink}`);
+        console.log('-------------------------------');
+        return { id: 'dry_run' };
+      }
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: 'You have been invited as an Admin',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Hello!</h2>
+            <p>You have been added as an admin on Hellocer. Please activate your account by clicking the link below:</p>
+            <a href="${activationLink}" 
+               style="background-color: #174568; color: white; padding: 14px 20px; 
+                      text-decoration: none; display: inline-block; margin: 20px 0; 
+                      border-radius: 4px;">
+              Activate Admin Account
+            </a>
+            <p>If you didn't expect this, please ignore this email.</p>
+          </div>
+        `
+      };
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send admin invitation email:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new EmailService();

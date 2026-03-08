@@ -160,6 +160,69 @@ exports.requestAdminActivation = async (req, res) => {
   }
 };
 
+exports.createAdmin = async (req, res) => {
+  try {
+    // Only super-admin can create new admins
+    if (req.user.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Only super-admins can create new admins' });
+    }
+
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    const newAdmin = new User({
+      email,
+      role: 'admin',
+      isActivated: false
+    });
+
+    // Save skipping validation because firstName/lastName are required but not yet provided
+    await newAdmin.save({ validateBeforeSave: false });
+
+    await EmailService.sendAdminInvitation(email);
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin account created and invitation sent',
+      user: {
+        id: newAdmin._id,
+        email: newAdmin.email,
+        role: newAdmin.role,
+        isActivated: newAdmin.isActivated
+      }
+    });
+  } catch (error) {
+    console.error('Create Admin error:', error);
+    res.status(500).json({ error: 'Failed to create admin' });
+  }
+};
+
+exports.getAdmins = async (req, res) => {
+  try {
+    // Only super-admin can see the list of all admins
+    if (req.user.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const admins = await User.find({ role: { $in: ['admin', 'super-admin'] } })
+      .select('email role isActivated createdAt')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      admins
+    });
+  } catch (error) {
+    console.error('Get Admins error:', error);
+    res.status(500).json({ error: 'Failed to fetch admins' });
+  }
+};
+
 exports.verifyAdminActivationCode = async (req, res) => {
   try {
     const { email, code } = req.body;
