@@ -110,10 +110,19 @@ exports.changeEmail = async (req, res) => {
 
 exports.updatePreferences = async (req, res) => {
   try {
-    const { emailNotifications, directMessages, clientReview, clientNewRegistration, hellocianactivities, emailSupportTickets, projectUpdates } = req.body;
+    const { 
+      emailNotifications, directMessages, clientReview, 
+      clientNewRegistration, hellocianactivities, 
+      emailSupportTickets, projectUpdates, timeZone 
+    } = req.body;
+    
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { emailNotifications, directMessages, clientReview, clientNewRegistration, hellocianactivities, emailSupportTickets, projectUpdates },
+      { 
+        emailNotifications, directMessages, clientReview, 
+        clientNewRegistration, hellocianactivities, 
+        emailSupportTickets, projectUpdates, timeZone 
+      },
       { new: true }
     ).select('-password');
 
