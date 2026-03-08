@@ -4,7 +4,14 @@ const userController = require('../controllers/user.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { restrictTo, checkActivation } = require('../middleware/roleCheck.middleware');
 
+const twoFactorController = require('../controllers/2fa.controller');
+
 router.use(protect, checkActivation);
+
+// 2FA Routes
+router.post('/2fa/generate', twoFactorController.generate2FA);
+router.post('/2fa/verify-setup', twoFactorController.verifySetup);
+router.post('/2fa/disable', twoFactorController.disable2FA);
 
 router.put('/profile', userController.updateProfile);
 router.post('/request-settings-change', userController.requestSettingsChange);

@@ -11,6 +11,7 @@ router.post('/twitter', gooleAppleAuthController.twitterAuth);
 router.post('/activate', authController.activateAccount);
 router.post('/resend-activation', authController.resendActivationCode);
 router.post('/login', authController.login);
+router.post('/verify-2fa', authController.verify2FALogin);
 router.post('/refresh-token', authController.refreshAccessToken);
 router.post('/logout', protect, authController.logout);
 router.post('/forgot-password', authController.forgotPassword);

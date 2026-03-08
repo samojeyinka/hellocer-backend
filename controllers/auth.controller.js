@@ -1,5 +1,6 @@
 const User = require('../models/user.model');
 const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/generateToken');
+const { verify } = require('otplib');
 const { generateActivationCode, generateResetToken, generateUsername } = require('../utils/generateCode');
 const EmailService = require('../services/email.service');
 const crypto = require('crypto');
@@ -151,6 +152,15 @@ exports.login = async (req, res) => {
     const expiresIn = rememberMe ? '30d' : process.env.JWT_EXPIRES_IN || '1d'; 
     const refreshExpiresIn = rememberMe ? '60d' : process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
+    // Check if 2FA is enabled
+    if (user.isTwoFactorEnabled) {
+      return res.json({
+        success: true,
+        requires2FA: true,
+        email: user.email
+      });
+    }
+
     // Generate both tokens
     const accessToken = generateToken(user._id, expiresIn);
     const refreshToken = generateRefreshToken(user._id, refreshExpiresIn);
@@ -167,6 +177,45 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed', details: error.message });
+  }
+};
+
+exports.verify2FALogin = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user || !user.isTwoFactorEnabled) {
+      return res.status(400).json({ error: '2FA not enabled for this account' });
+    }
+
+    const result = await verify({
+      token: code,
+      secret: user.twoFactorSecret
+    });
+    if (!result || !result.valid) {
+      return res.status(400).json({ error: 'Invalid verification code' });
+    }
+
+    // Generate full tokens
+    const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
+    const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+
+    const accessToken = generateToken(user._id, expiresIn);
+    const refreshToken = generateRefreshToken(user._id, refreshExpiresIn);
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: user
+    });
+  } catch (error) {
+    console.error('2FA Login Verification Error:', error);
+    res.status(500).json({ error: 'Login verification failed' });
   }
 };
 

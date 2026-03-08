@@ -130,6 +130,15 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // 2FA
+  twoFactorSecret: {
+    type: String,
+    default: null
+  },
+  isTwoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
 }, { 
   timestamps: true
 });
