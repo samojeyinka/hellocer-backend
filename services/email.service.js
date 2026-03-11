@@ -313,6 +313,48 @@ class EmailService {
       throw error;
     }
   }
+
+  async sendHellocianInvitation(email, firstName) {
+    try {
+      const setupLink = `${process.env.FRONTEND_URL}/hellocians/setup-password`; // I'll need to check if this page exists or create it
+      
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- HELLOCIAN INVITATION DRY RUN ---');
+        console.log(`To: ${email}`);
+        console.log(`Subject: Hellocian Invitation`);
+        console.log(`Link: ${setupLink}`);
+        console.log('------------------------------------');
+        return { id: 'dry_run' };
+      }
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `Hello ${firstName}, You have been invited as a Hellocian`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #174568;">Welcome to Hellocer!</h2>
+            <p>Hi ${firstName},</p>
+            <p>You have been added as a Hellocian on our platform. To get started, please set up your account password by clicking the link below:</p>
+            <a href="${setupLink}" 
+               style="background-color: #174568; color: white; padding: 14px 20px; 
+                      text-decoration: none; display: inline-block; margin: 20px 0; 
+                      border-radius: 4px;">
+              Set Up Account
+            </a>
+            <p>This invitation allows you to join our network of professionals and start working on exciting projects.</p>
+            <p>If you have any questions, feel free to reply to this email.</p>
+            <p>Best regards,<br>The Hellocer Team</p>
+          </div>
+        `
+      };
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send hellocian invitation email:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new EmailService();

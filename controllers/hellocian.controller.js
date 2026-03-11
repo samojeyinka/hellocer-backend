@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const User = require('../models/user.model');
 const { generateToken, generateRefreshToken } = require('../utils/generateToken');
 const { generateUsername } = require('../utils/generateCode');
+const EmailService = require('../services/email.service');
 
 /**
  * @desc    Admin/Super-Admin creates a Hellocian account
@@ -10,7 +11,7 @@ const { generateUsername } = require('../utils/generateCode');
  */
 exports.createHellocian = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, skills = [], keywords = [] } = req.body;
+    const { firstName, lastName, email, phone, bio, skills = [], keywords = [] } = req.body;
 
     // Basic validation
     if (!firstName || !lastName || !email || !phone) {
@@ -45,6 +46,7 @@ exports.createHellocian = async (req, res) => {
       username,
       email,
       phone,
+      bio,
       skills,
       keywords,
       role: 'hellocian',
@@ -54,36 +56,24 @@ exports.createHellocian = async (req, res) => {
       passwordSetupTokenExpires: setupTokenExpires
     });
 
-    // ── No email service yet: log the setup details to console ──
-    console.log('='.repeat(60));
-    console.log('📋  NEW HELLOCIAN ACCOUNT CREATED');
-    console.log('='.repeat(60));
-    console.log(`  Name       : ${firstName} ${lastName}`);
-    console.log(`  Email      : ${email}`);
-    console.log(`  Phone      : ${phone}`);
-    console.log(`  Skills     : ${skills.join(', ') || 'N/A'}`);
-    console.log(`  Keywords   : ${keywords.join(', ') || 'N/A'}`);
-    console.log(`  Setup Token: ${setupToken}`);
-    console.log(`  Expires    : ${setupTokenExpires.toISOString()}`);
-    console.log('  → Send this token to the Hellocian so they can set their password.');
-    console.log('='.repeat(60));
+    await EmailService.sendHellocianInvitation(email, firstName);
 
     res.status(201).json({
       success: true,
-      message: 'Hellocian account created. Setup token logged to console (send it to the Hellocian).',
+      message: 'Hellocian account created and invitation sent.',
       hellocian: {
         id: hellocian._id,
         firstName: hellocian.firstName,
         lastName: hellocian.lastName,
+        email: hellocian.email,
         phone: hellocian.phone,
+        bio: hellocian.bio,
         skills: hellocian.skills,
         keywords: hellocian.keywords,
         role: hellocian.role,
         isProfileComplete: hellocian.isProfileComplete,
         createdAt: hellocian.createdAt
-      },
-      // Included in response for dev convenience (remove in production when email is live)
-      setupToken
+      }
     });
   } catch (error) {
     console.error('Create Hellocian error:', error);
@@ -104,8 +94,11 @@ exports.setupPassword = async (req, res) => {
       return res.status(400).json({ error: 'token and password are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const passwordRegex = /^(?=(?:[^A-Z]*[A-Z]){3})(?=(?:[^a-z]*[a-z]){2})(?=(?:\D*\d){2})(?=.*[^a-zA-Z0-9]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        error: 'Password must be at least 8 characters long, contain at least 3 uppercase letters, 2 lowercase letters, 2 digits, and 1 special character.' 
+      });
     }
 
     // Find hellocian by valid, non-expired token
