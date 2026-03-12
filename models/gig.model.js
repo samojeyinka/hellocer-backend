@@ -105,6 +105,11 @@ const GigSchema = new mongoose.Schema({
   isAcceptingOrders: {
     type: Boolean,
     default: true
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'published'],
+    default: 'published'
   }
 }, {
   timestamps: true

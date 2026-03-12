@@ -174,6 +174,28 @@ exports.getHellocians = async (req, res) => {
 };
 
 /**
+ * @desc    Get only activated Hellocians (for gig assignment)
+ * @route   GET /api/hellocians/active
+ * @access  Private (admin, super-admin)
+ */
+exports.getActiveHellocians = async (req, res) => {
+  try {
+    const hellocians = await User.find({ role: 'hellocian', isActivated: true })
+      .select('_id firstName lastName profilePicture bio')
+      .sort({ firstName: 1 });
+
+    res.json({
+      success: true,
+      count: hellocians.length,
+      hellocians
+    });
+  } catch (error) {
+    console.error('Get active hellocians error:', error);
+    res.status(500).json({ error: 'Failed to fetch active Hellocians', details: error.message });
+  }
+};
+
+/**
  * @desc    Get a single Hellocian by ID
  * @route   GET /api/hellocians/:id
  * @access  Private (admin, super-admin)

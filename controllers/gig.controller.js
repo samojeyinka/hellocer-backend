@@ -25,10 +25,16 @@ exports.createGig = async (req, res) => {
       }
     }
 
-    res.status(201).json({ success: true, gig });
+    // Populate hellocian details so response reflects real data (not hardcoded)
+    const populatedGig = await Gig.findById(gig._id)
+      .populate('hellocians', '_id firstName lastName username bio profilePicture')
+      .populate('category', 'name slug')
+      .populate('tags', 'name');
+
+    res.status(201).json({ success: true, gig: populatedGig });
   } catch (error) {
     console.error('Create gig error:', error);
-    res.status(500).json({ error: 'Failed to create gig', details: error.message });
+    res.status(500).json({ error: error.message, details: error.message });
   }
 };
 
@@ -36,7 +42,7 @@ exports.getAllGigs = async (req, res) => {
   try {
     const { category, search, minPrice, maxPrice, page = 1, limit = 12 } = req.query;
 
-    const query = { isActive: true };
+    const query = { isActive: true, status: 'published' };
 
     if (category) {
       if (category !== 'all' && category !== 'all-services') {

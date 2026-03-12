@@ -23,6 +23,14 @@ router.get(
   hellocianController.getHellocians
 );
 
+// Admin/Super-Admin: list only activated hellocians (for gig assignment)
+router.get(
+  '/active',
+  protect,
+  restrictTo('admin', 'super-admin'),
+  hellocianController.getActiveHellocians
+);
+
 // Admin/Super-Admin: get a single hellocian by ID
 router.get(
   '/:id',
