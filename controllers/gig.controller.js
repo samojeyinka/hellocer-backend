@@ -37,7 +37,7 @@ exports.createGig = async (req, res) => {
 // ─── Get All Gigs (public — exclude soft-deleted and drafts) ─────────────────
 exports.getAllGigs = async (req, res) => {
   try {
-    const { category, search, minPrice, maxPrice, page = 1, limit = 12 } = req.query;
+    const { category, search, minPrice, maxPrice, tags, page = 1, limit = 12 } = req.query;
 
     const query = { isActive: true, status: 'published', deletedAt: null };
 
@@ -63,6 +63,24 @@ exports.getAllGigs = async (req, res) => {
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    if (tags) {
+      const tagList = tags.split(',');
+      // Check if they are IDs or names/slugs
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(tagList[0]);
+      if (isObjectId) {
+        query.tags = { $in: tagList };
+      } else {
+        const Tag = require('../models/tag.model');
+        const tagDocs = await Tag.find({ name: { $in: tagList.map(t => new RegExp(`^${t}$`, 'i')) } });
+        if (tagDocs.length > 0) {
+          query.tags = { $in: tagDocs.map(td => td._id) };
+        } else {
+           // If no tags found but were requested, return empty
+           return res.json({ success: true, gigs: [], pagination: { total: 0, page: parseInt(page), pages: 0 } });
+        }
+      }
     }
 
     if (minPrice || maxPrice) {
@@ -340,5 +358,49 @@ exports.toggleAcceptingOrders = async (req, res) => {
   } catch (error) {
     console.error('Toggle accepting orders error:', error);
     res.status(500).json({ error: 'Failed to update gig status' });
+  }
+};
+// ─── Get Similar Gigs ─────────────────────────────────────────────────────────
+exports.getSimilarGigs = async (req, res) => {
+  try {
+    const { gigId } = req.params;
+
+    const currentGig = await Gig.findById(gigId);
+    if (!currentGig) return res.status(404).json({ error: 'Gig not found' });
+
+    const similarGigs = await Gig.find({
+      _id: { $ne: gigId },
+      isActive: true,
+      status: 'published',
+      deletedAt: null,
+      $or: [
+        { category: { $in: currentGig.category } },
+        { tags: { $in: currentGig.tags } }
+      ]
+    })
+    .populate('creator', 'firstName lastName username profilePicture')
+    .limit(8);
+
+    const gigsWithRating = similarGigs.map(g => {
+      const gigObj = g.toObject();
+      gigObj.avgRating = g.starNumber > 0 ? g.totalStars / g.starNumber : 0;
+      return gigObj;
+    });
+
+    res.json({ success: true, gigs: gigsWithRating });
+  } catch (error) {
+    console.error('Get similar gigs error:', error);
+    res.status(500).json({ error: 'Failed to get similar gigs' });
+  }
+};
+// ─── Get All Tags ────────────────────────────────────────────────────────────
+exports.getAllTags = async (req, res) => {
+  try {
+    const Tag = require('../models/tag.model');
+    const tags = await Tag.find().sort({ name: 1 });
+    res.json({ success: true, tags });
+  } catch (error) {
+    console.error('Get tags error:', error);
+    res.status(500).json({ error: 'Failed to get tags' });
   }
 };

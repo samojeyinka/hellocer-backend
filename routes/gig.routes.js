@@ -5,8 +5,10 @@ const { protect, optionalProtect } = require('../middleware/auth.middleware');
 const { restrictTo, checkActivation } = require('../middleware/roleCheck.middleware');
 
 // ── Public routes ──────────────────────────────────────────────────────────────
+router.get('/tags', gigController.getAllTags);
 router.get('/', gigController.getAllGigs);
 router.get('/slug/:slug', optionalProtect, gigController.getGigBySlug);
+router.get('/:gigId/similar', optionalProtect, gigController.getSimilarGigs);
 router.get('/:gigId', optionalProtect, gigController.getGigById);
 
 // ── Protected (admin / super-admin) routes ─────────────────────────────────────
