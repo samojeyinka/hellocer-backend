@@ -26,19 +26,32 @@ exports.getAllCategories = async (req, res) => {
       {
         $lookup: {
           from: 'gigs',
-          localField: '_id',
-          foreignField: 'category',
-          as: 'gigs'
+          let: { categoryId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$$categoryId', '$category'] },
+                isActive: true,
+                status: 'published'
+              }
+            }
+          ],
+          as: 'activeGigs'
         }
       },
       {
         $addFields: {
-          gigCount: { $size: '$gigs' }
+          gigCount: { $size: '$activeGigs' }
+        }
+      },
+      {
+        $match: {
+          gigCount: { $gt: 0 }
         }
       },
       {
         $project: {
-          gigs: 0 
+          activeGigs: 0 
         }
       },
       {
