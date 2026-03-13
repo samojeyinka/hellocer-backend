@@ -21,6 +21,7 @@ const paymentRoutes = require('./routes/payment.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const hellocianRoutes = require('./routes/hellocian.routes');
 const adminRoutes = require('./routes/admin.routes');
+const clientRoutes = require('./routes/client.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -57,6 +58,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/hellocians', hellocianRoutes);
 app.use('/api/admins', adminRoutes);
+app.use('/api/clients', clientRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
