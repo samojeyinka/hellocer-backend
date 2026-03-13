@@ -1,28 +1,33 @@
 const PaymentService = require('../services/payment/paymentService');
 const Gig = require('../models/gig.model');
 const { createOrder } = require('./order.controller');
-const Payment = require('../models/payment.model')
+const Payment = require('../models/payment.model');
 
 exports.createPayment = async (req, res) => {
   try {
-    const { amount, provider = 'paypal', gigId, pricingPackage } = req.body;
+    const { provider = 'paypal', gigId, pricingPackage } = req.body;
+
+    if (!gigId || !pricingPackage) {
+      return res.status(400).json({ error: 'gigId and pricingPackage are required' });
+    }
 
     const gig = await Gig.findById(gigId);
     if (!gig) {
-      return res.status(404).json({ error: "Gig not found" });
+      return res.status(404).json({ error: 'Gig not found' });
     }
 
     if (!gig.isAcceptingOrders) {
-      return res.status(400).json({ error: "This gig is not accepting orders at the moment" });
+      return res.status(400).json({ error: 'This gig is not accepting orders at the moment' });
     }
 
-    const expectedAmount = gig.pricing[pricingPackage]?.price;
-    if (!expectedAmount || amount !== expectedAmount) {
-      return res.status(400).json({ error: "Invalid amount for selected package" });
+    // Always derive amount server-side — never trust the client
+    const amount = gig.pricing[pricingPackage]?.price;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: `Invalid or missing price for package: ${pricingPackage}` });
     }
 
-    const returnUrl = `${process.env.FRONTEND_URL}/payment/success`;
-    const cancelUrl = `${process.env.FRONTEND_URL}/payment/cancel`;
+    const returnUrl = `${process.env.FRONTEND_URL}/payment/success?gigId=${gigId}&package=${pricingPackage}`;
+    const cancelUrl = `${process.env.FRONTEND_URL}/payment/cancel?gigId=${gigId}&package=${pricingPackage}`;
     const description = `Payment for ${gig.title} - ${pricingPackage} package`;
 
     const result = await PaymentService.createPayment(
@@ -36,11 +41,13 @@ exports.createPayment = async (req, res) => {
     res.json({
       success: true,
       paymentId: result.paymentId,
-      approvalUrl: result.approvalUrl
+      approvalUrl: result.approvalUrl,
+      amount,
+      currency: 'USD'
     });
   } catch (error) {
     console.error('Payment creation error:', error);
-    res.status(500).json({ error: "Failed to create payment", details: error.message });
+    res.status(500).json({ error: 'Failed to create payment', details: error.message });
   }
 };
 
@@ -54,20 +61,35 @@ exports.executePayment = async (req, res) => {
       provider = 'paypal'
     } = req.body;
 
-    const duplicate = await PaymentService.checkDuplicatePayment(paymentId);
-    if (duplicate) {
-      return res.status(400).json({ error: "This payment has already been processed" });
+    if (!paymentId || !PayerID || !gigId || !pricingPackage) {
+      return res.status(400).json({ error: 'paymentId, PayerID, gigId and pricingPackage are required' });
     }
 
-    const gig = await Gig.findById(gigId).populate('category', 'name').populate('hellocians');
+    const duplicate = await PaymentService.checkDuplicatePayment(paymentId);
+    if (duplicate) {
+      return res.status(400).json({ error: 'This payment has already been processed' });
+    }
+
+    const gig = await Gig.findById(gigId)
+      .populate('category', 'name')
+      .populate('hellocians', '_id firstName lastName email')
+      .populate('creator', '_id firstName lastName email');
+
     if (!gig) {
-      return res.status(404).json({ error: "Gig not found" });
+      return res.status(404).json({ error: 'Gig not found' });
     }
 
     const expectedAmount = gig.pricing[pricingPackage]?.price;
+    if (!expectedAmount) {
+      return res.status(400).json({ error: `Invalid package: ${pricingPackage}` });
+    }
+
     const result = await PaymentService.executePayment(provider, paymentId, PayerID);
 
-    if (result.status === 'approved' && parseFloat(result.amount) === expectedAmount) {
+    // Use tolerance-based comparison to avoid float precision issues
+    const amountMatch = Math.abs(parseFloat(result.amount) - expectedAmount) < 0.01;
+
+    if (result.status === 'approved' && amountMatch) {
       const paymentRecord = await PaymentService.recordPayment({
         amount: result.amount,
         email: req.user.email,
@@ -86,7 +108,7 @@ exports.executePayment = async (req, res) => {
         img: gig.cover,
         title: gig.title,
         clientId: req.user._id,
-        gigCreatorId: gig.creator,
+        gigCreatorId: gig.creator._id,
         hellocians: gig.hellocians.map(h => h._id),
         gigCategory: gig.category.map(cat => cat.name),
         payment_method: provider,
@@ -99,8 +121,9 @@ exports.executePayment = async (req, res) => {
 
       res.json({
         success: true,
-        message: "Payment successful",
+        message: 'Payment successful',
         orderId: order._id,
+        chatId: order.chatId,
         transaction: {
           amount: result.amount,
           currency: result.currency
@@ -108,23 +131,23 @@ exports.executePayment = async (req, res) => {
       });
     } else {
       res.status(400).json({
-        error: "Payment verification failed",
-        details: "Amount mismatch or payment not approved"
+        error: 'Payment verification failed',
+        details: `Status: ${result.status}, Amount received: ${result.amount}, Expected: ${expectedAmount}`
       });
     }
   } catch (error) {
     console.error('Payment execution error:', error);
-    res.status(500).json({ error: "Failed to process payment", details: error.message });
+    res.status(500).json({ error: 'Failed to process payment', details: error.message });
   }
 };
 
 exports.refundPayment = async (req, res) => {
   try {
     const { orderId, amount, provider = 'paypal' } = req.body;
-    
+
     const payment = await Payment.findOne({ orderId });
     if (!payment) {
-      return res.status(404).json({ error: "Payment not found" });
+      return res.status(404).json({ error: 'Payment not found' });
     }
 
     const refund = await PaymentService.refundPayment(
@@ -137,11 +160,11 @@ exports.refundPayment = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Refund processed successfully",
+      message: 'Refund processed successfully',
       refund
     });
   } catch (error) {
     console.error('Refund error:', error);
-    res.status(500).json({ error: "Failed to process refund", details: error.message });
+    res.status(500).json({ error: 'Failed to process refund', details: error.message });
   }
 };

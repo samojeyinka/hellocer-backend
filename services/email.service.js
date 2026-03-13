@@ -207,39 +207,51 @@ class EmailService {
 
   async sendOrderNotification(email, firstName, orderDetails) {
     try {
-      const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'orders@yourdomain.com',
+      const isClient = !!orderDetails.isClient;
+      const subject = isClient
+        ? `Order Confirmed: ${orderDetails.title}`
+        : `New Order Received: ${orderDetails.title}`;
+
+      const heading = isClient ? 'Your Order is Confirmed!' : 'You Have a New Order!';
+      const introParagraph = isClient
+        ? `Hi ${firstName}, your payment was successful and your order has been created.`
+        : `Hi ${firstName}, a new order has been placed for one of your gigs.`;
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
         to: email,
-        subject: 'Order Confirmation',
+        subject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Order Confirmation</h2>
-            <p>Hi ${firstName},</p>
-            <p>Your order has been confirmed!</p>
+            <h2 style="color: #174568;">${heading}</h2>
+            <p>${introParagraph}</p>
             <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <p style="margin: 5px 0;"><strong>Order ID:</strong> ${orderDetails.orderId}</p>
               <p style="margin: 5px 0;"><strong>Service:</strong> ${orderDetails.title}</p>
               <p style="margin: 5px 0;"><strong>Package:</strong> <span style="text-transform: capitalize;">${orderDetails.package}</span></p>
-              <p style="margin: 5px 0;"><strong>Amount:</strong> <span style="font-size: 20px; color: #4CAF50;">$${orderDetails.amount}</span></p>
+              <p style="margin: 5px 0;"><strong>Amount:</strong> <span style="font-size: 18px; color: #4CAF50;">$${orderDetails.amount}</span></p>
             </div>
-            <a href="${process.env.FRONTEND_URL}/orders/${orderDetails.orderId}" 
-               style="background-color: #4CAF50; color: white; padding: 14px 20px; 
-                      text-decoration: none; display: inline-block; margin: 20px 0; 
-                      border-radius: 4px;">
-              View Order Details
+            <a href="${process.env.FRONTEND_URL}/dashboard" 
+               style="background-color: #174568; color: white; padding: 12px 20px;
+                      text-decoration: none; display: inline-block; margin: 10px 0; border-radius: 4px;">
+              View Dashboard
             </a>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              You can track your order status and communicate with the team through the order chat.
+            <p style="color: #666; font-size: 13px; margin-top: 20px;">
+              You can track the order and communicate with the team through your dashboard.
             </p>
           </div>
         `
-      });
+      };
 
-      if (error) throw error;
-      return data;
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ORDER EMAIL DRY RUN ---', { to: email, subject });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error('Failed to send order notification:', error);
-      // Don't throw - we don't want to fail order creation if email fails
+      console.error('Failed to send order notification email:', error);
+      // Don't throw — we don't want to fail order creation if email fails
     }
   }
 

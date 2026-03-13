@@ -33,9 +33,13 @@ exports.getUserOrders = async (req, res) => {
       ];
     }
 
-    // Filter by status if provided
+    // Filter by status if provided (supports comma-separated multiple statuses)
     if (status) {
-      query.status = status;
+      if (status.includes(',')) {
+        query.status = { $in: status.split(',').map(s => s.trim()) };
+      } else {
+        query.status = status;
+      }
     }
 
     const orders = await Order.find(query)
@@ -194,11 +198,13 @@ exports.createOrder = async (orderData) => {
         relatedModel: 'Order'
       });
 
-      // Send email notification
+      // Send email notification — differentiate buyer vs service team
+      const isClient = participant._id.toString() === clientId.toString();
       await EmailService.sendOrderNotification(
         participant.email,
         participant.firstName,
         {
+          isClient,
           orderId: order._id,
           title,
           package: pricingPackage,

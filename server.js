@@ -6,7 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan'); 
 const connectDB = require('./config/db');
 const { initializeSocket } = require('./config/socket');
-const errorHandler = require('./middleware/errorHandler.middleware');
+const errorHandler = require('./middleware/errorHandler.middleware'); 
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
