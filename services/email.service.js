@@ -438,6 +438,47 @@ class EmailService {
       throw error;
     }
   }
+
+  async sendCustomQuoteRequest(data) {
+    try {
+      const { name, email, projectDescription } = data;
+      const ownerEmail = 'samuelojeyinka@gmail.com';
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- CUSTOM QUOTE DRY RUN ---');
+        console.log(`To: ${ownerEmail}`);
+        console.log(`From: ${name} (${email})`);
+        console.log(`Subject: New Custom Quote Request`);
+        console.log(`Description: ${projectDescription}`);
+        console.log('----------------------------');
+        return { id: 'dry_run' };
+      }
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: ownerEmail,
+        replyTo: email,
+        subject: `New Custom Quote Request from ${name}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+            <h2 style="color: #174568;">New Custom Quote Request</h2>
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Name:</strong> ${name}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Project Description:</strong></p>
+              <p style="white-space: pre-wrap;">${projectDescription}</p>
+            </div>
+            <p style="color: #666; font-size: 12px;">This request was sent from the Custom Quote banner on Hellocer.</p>
+          </div>
+        `
+      };
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send custom quote email:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new EmailService();
