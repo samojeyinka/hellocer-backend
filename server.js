@@ -20,6 +20,7 @@ const reviewRoutes = require('./routes/review.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const hellocianRoutes = require('./routes/hellocian.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -55,6 +56,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/hellocians', hellocianRoutes);
+app.use('/api/admins', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

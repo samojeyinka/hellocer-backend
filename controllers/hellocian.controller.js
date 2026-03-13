@@ -213,21 +213,23 @@ exports.toggleBlockHellocian = async (req, res) => {
     
     hellocian.isBlocked = !hellocian.isBlocked;
     
+    const displayName = hellocian.firstName || 'Hellocian';
+    
     if (hellocian.isBlocked) {
       hellocian.blockedBy = req.user._id;
       hellocian.blockedAt = new Date();
       if (EmailService.sendAccountBlockedEmail) {
-        await EmailService.sendAccountBlockedEmail(hellocian.email, hellocian.firstName, reason);
+        await EmailService.sendAccountBlockedEmail(hellocian.email, displayName, reason);
       }
     } else {
       hellocian.blockedBy = undefined;
       hellocian.blockedAt = undefined;
       if (EmailService.sendAccountUnblockedEmail) {
-        await EmailService.sendAccountUnblockedEmail(hellocian.email, hellocian.firstName);
+        await EmailService.sendAccountUnblockedEmail(hellocian.email, displayName);
       }
     }
     
-    await hellocian.save();
+    await hellocian.save({ validateBeforeSave: false });
     
     res.json({ 
       success: true, 
@@ -255,10 +257,10 @@ exports.deleteHellocian = async (req, res) => {
     }
     
     hellocian.deletedAt = new Date();
-    await hellocian.save();
+    await hellocian.save({ validateBeforeSave: false });
     
     if (EmailService.sendAccountDeletedEmail) {
-      await EmailService.sendAccountDeletedEmail(hellocian.email, hellocian.firstName);
+      await EmailService.sendAccountDeletedEmail(hellocian.email, hellocian.firstName || 'Hellocian');
     }
     
     res.json({ success: true, message: 'Hellocian deleted successfully' });
@@ -353,11 +355,11 @@ exports.restoreHellocian = async (req, res) => {
     }
     
     hellocian.deletedAt = null;
-    await hellocian.save();
+    await hellocian.save({ validateBeforeSave: false });
     
     // Send email notification and await its completion
     if (EmailService.sendAccountRestoredEmail) {
-      await EmailService.sendAccountRestoredEmail(hellocian.email, hellocian.firstName);
+      await EmailService.sendAccountRestoredEmail(hellocian.email, hellocian.firstName || 'Hellocian');
     }
 
     res.json({ success: true, message: 'Hellocian restored successfully', hellocian });
