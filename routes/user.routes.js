@@ -21,6 +21,12 @@ router.put('/preferences', userController.updatePreferences);
 router.get('/check-username', userController.checkUsernameAvailability);
 router.put('/username', userController.updateUsername);
 router.delete('/account', userController.deleteOwnAccount);
+
+// Bookmark routes (must come before /:userId to avoid conflicts)
+router.get('/bookmarks', userController.getSavedGigs);
+router.get('/bookmarks/ids', userController.getBookmarkedIds);
+router.post('/bookmarks/:gigId', userController.toggleBookmark);
+
 router.get('/:userId', userController.getUserById);
 
 // Admin/Super-Admin routes

@@ -396,3 +396,61 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({ error: 'Failed to get users' });
   }
 };
+
+// ── Bookmarks ─────────────────────────────────────────────────────────────────
+
+exports.toggleBookmark = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { gigId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isBookmarked = user.savedGigs.some(id => id.toString() === gigId);
+
+    if (isBookmarked) {
+      user.savedGigs = user.savedGigs.filter(id => id.toString() !== gigId);
+    } else {
+      user.savedGigs.push(gigId);
+    }
+
+    await user.save();
+    res.json({ success: true, bookmarked: !isBookmarked });
+  } catch (error) {
+    console.error('Toggle bookmark error:', error);
+    res.status(500).json({ error: 'Failed to toggle bookmark' });
+  }
+};
+
+exports.getSavedGigs = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .populate({
+        path: 'savedGigs',
+        match: { deletedAt: null, isActive: true, status: 'published' },
+        populate: [
+          { path: 'creator', select: 'firstName lastName username profilePicture' },
+          { path: 'category', select: 'name slug' }
+        ]
+      });
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.json({ success: true, gigs: user.savedGigs.filter(Boolean) });
+  } catch (error) {
+    console.error('Get saved gigs error:', error);
+    res.status(500).json({ error: 'Failed to get saved gigs' });
+  }
+};
+
+exports.getBookmarkedIds = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('savedGigs');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true, savedGigs: user.savedGigs });
+  } catch (error) {
+    console.error('Get bookmarked ids error:', error);
+    res.status(500).json({ error: 'Failed to get bookmarked ids' });
+  }
+};
