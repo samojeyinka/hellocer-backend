@@ -110,6 +110,14 @@ const GigSchema = new mongoose.Schema({
     type: String,
     enum: ['draft', 'published'],
     default: 'published'
+  },
+  clicks: {
+    type: Number,
+    default: 0
+  },
+  deletedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

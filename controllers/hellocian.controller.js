@@ -158,18 +158,113 @@ exports.setupPassword = async (req, res) => {
  */
 exports.getHellocians = async (req, res) => {
   try {
-    const hellocians = await User.find({ role: 'hellocian' })
+    const hellocians = await User.find({ role: 'hellocian', deletedAt: null })
       .select('-password -refreshToken -passwordSetupToken -passwordSetupTokenExpires -resetPasswordToken')
       .sort({ createdAt: -1 });
+
+    const Gig = require('../models/gig.model');
+
+    const hellociansWithStats = await Promise.all(hellocians.map(async (h) => {
+      // Find active and published gigs this hellocian is assigned to
+      const gigQuery = {
+        hellocians: h._id,
+        isActive: true,
+        status: 'published',
+        deletedAt: null
+      };
+      
+      const activeGigCount = await Gig.countDocuments(gigQuery);
+      
+      const gigs = await Gig.find(gigQuery).select('sales');
+      const orderCount = gigs.reduce((sum, g) => sum + (g.sales || 0), 0);
+
+      return {
+        ...h.toObject(),
+        activeGigCount,
+        orderCount
+      };
+    }));
 
     res.json({
       success: true,
       count: hellocians.length,
-      hellocians
+      hellocians: hellociansWithStats
     });
   } catch (error) {
     console.error('Get hellocians error:', error);
     res.status(500).json({ error: 'Failed to fetch Hellocians', details: error.message });
+  }
+};
+
+/**
+ * @desc    Toggle block status of a Hellocian
+ * @route   PATCH /api/hellocians/:id/toggle-block
+ * @access  Private (admin, super-admin)
+ */
+exports.toggleBlockHellocian = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    const hellocian = await User.findOne({ _id: id, role: 'hellocian', deletedAt: null });
+    if (!hellocian) {
+      return res.status(404).json({ error: 'Hellocian not found' });
+    }
+    
+    hellocian.isBlocked = !hellocian.isBlocked;
+    
+    if (hellocian.isBlocked) {
+      hellocian.blockedBy = req.user._id;
+      hellocian.blockedAt = new Date();
+      if (EmailService.sendAccountBlockedEmail) {
+        await EmailService.sendAccountBlockedEmail(hellocian.email, hellocian.firstName, reason);
+      }
+    } else {
+      hellocian.blockedBy = undefined;
+      hellocian.blockedAt = undefined;
+      if (EmailService.sendAccountUnblockedEmail) {
+        await EmailService.sendAccountUnblockedEmail(hellocian.email, hellocian.firstName);
+      }
+    }
+    
+    await hellocian.save();
+    
+    res.json({ 
+      success: true, 
+      message: hellocian.isBlocked ? 'Hellocian blocked successfully' : 'Hellocian unblocked successfully', 
+      hellocian 
+    });
+  } catch (error) {
+    console.error('Toggle block hellocian error:', error);
+    res.status(500).json({ error: 'Failed to toggle block status', details: error.message });
+  }
+};
+
+/**
+ * @desc    Soft delete a Hellocian
+ * @route   DELETE /api/hellocians/:id
+ * @access  Private (admin, super-admin)
+ */
+exports.deleteHellocian = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const hellocian = await User.findOne({ _id: id, role: 'hellocian', deletedAt: null });
+    if (!hellocian) {
+      return res.status(404).json({ error: 'Hellocian not found' });
+    }
+    
+    hellocian.deletedAt = new Date();
+    await hellocian.save();
+    
+    if (EmailService.sendAccountDeletedEmail) {
+      await EmailService.sendAccountDeletedEmail(hellocian.email, hellocian.firstName);
+    }
+    
+    res.json({ success: true, message: 'Hellocian deleted successfully' });
+  } catch (error) {
+    console.error('Delete hellocian error:', error);
+    res.status(500).json({ error: 'Failed to delete Hellocian', details: error.message });
   }
 };
 
@@ -213,5 +308,114 @@ exports.getHellocianById = async (req, res) => {
   } catch (error) {
     console.error('Get hellocian error:', error);
     res.status(500).json({ error: 'Failed to fetch Hellocian', details: error.message });
+  }
+};
+
+/**
+ * @desc    Get all Trashed Hellocians
+ * @route   GET /api/hellocians/trash
+ * @access  Private (admin, super-admin)
+ */
+exports.getTrashedHellocians = async (req, res) => {
+  try {
+    const hellocians = await User.find({ role: 'hellocian', deletedAt: { $ne: null } })
+      .select('-password -refreshToken')
+      .sort({ deletedAt: -1 });
+
+    res.json({
+      success: true,
+      count: hellocians.length,
+      hellocians
+    });
+  } catch (error) {
+    console.error('Get trashed hellocians error:', error);
+    res.status(500).json({ error: 'Failed to fetch trashed Hellocians', details: error.message });
+  }
+};
+
+/**
+ * @desc    Restore a soft-deleted Hellocian
+ * @route   PATCH /api/hellocians/:id/restore
+ * @access  Private (admin, super-admin)
+ */
+exports.restoreHellocian = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const hellocian = await User.findOne({ _id: id, role: 'hellocian' });
+    if (!hellocian) {
+      return res.status(404).json({ error: 'Hellocian not found' });
+    }
+    
+    // If it's already active, just return success.
+    if (hellocian.deletedAt === null) {
+        return res.json({ success: true, message: 'Hellocian is already active', hellocian });
+    }
+    
+    hellocian.deletedAt = null;
+    await hellocian.save();
+    
+    // Send email notification and await its completion
+    if (EmailService.sendAccountRestoredEmail) {
+      await EmailService.sendAccountRestoredEmail(hellocian.email, hellocian.firstName);
+    }
+
+    res.json({ success: true, message: 'Hellocian restored successfully', hellocian });
+  } catch (error) {
+    console.error('Restore hellocian error:', error);
+    res.status(500).json({ error: 'Failed to restore Hellocian', details: error.message });
+  }
+};
+
+/**
+ * @desc    Permanently delete a Hellocian
+ * @route   DELETE /api/hellocians/:id/hard
+ * @access  Private (admin, super-admin)
+ */
+exports.hardDeleteHellocian = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const hellocian = await User.findOneAndDelete({ _id: id, role: 'hellocian' });
+    if (!hellocian) {
+      return res.status(404).json({ error: 'Hellocian not found' });
+    }
+    
+    res.json({ success: true, message: 'Hellocian permanently deleted' });
+  } catch (error) {
+    console.error('Hard delete hellocian error:', error);
+    res.status(500).json({ error: 'Failed to permanently delete Hellocian', details: error.message });
+  }
+};
+
+/**
+ * @desc    Bulk Delete Hellocians
+ * @route   POST /api/hellocians/bulk-delete
+ * @access  Private (admin, super-admin)
+ */
+exports.bulkDeleteHellocians = async (req, res) => {
+  try {
+    const { ids, action } = req.body; // action can be 'soft' or 'hard'
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Please provide an array of IDs' });
+    }
+
+    if (action === 'hard') {
+      await User.deleteMany({ _id: { $in: ids }, role: 'hellocian' });
+      return res.json({ success: true, message: `${ids.length} Hellocians permanently deleted` });
+    } else {
+      // Default to soft delete
+      await User.updateMany(
+        { _id: { $in: ids }, role: 'hellocian', deletedAt: null },
+        { $set: { deletedAt: new Date() } }
+      );
+      
+      // Optionally trigger emails here, or assume admin knows bulk delete is quiet
+      return res.json({ success: true, message: `${ids.length} Hellocians soft-deleted successfully` });
+    }
+  } catch (error) {
+    console.error('Bulk delete hellocians error:', error);
+    res.status(500).json({ error: 'Failed to perform bulk delete', details: error.message });
   }
 };

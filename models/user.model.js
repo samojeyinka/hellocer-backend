@@ -120,6 +120,10 @@ const UserSchema = new mongoose.Schema({
   // Settings Change OTP
   settingsChangeCode: String,
   settingsChangeCodeExpires: Date,
+  deletedAt: {
+    type: Date,
+    default: null
+  },
 
   // Preferences
   emailNotifications: {

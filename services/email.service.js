@@ -245,33 +245,116 @@ class EmailService {
 
   async sendAccountBlockedEmail(email, firstName, reason) {
     try {
-      const { data, error } = await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'security@yourdomain.com',
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
         to: email,
-        subject: 'Account Blocked',
+        subject: 'Account Suspended',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #d32f2f;">Account Blocked</h2>
+            <h2 style="color: #d32f2f;">Account Suspended</h2>
             <p>Hi ${firstName},</p>
-            <p>Your account has been blocked.</p>
+            <p>Your account has been temporarily suspended.</p>
             ${reason ? `<div style="background-color: #ffebee; padding: 15px; border-radius: 4px; margin: 20px 0;">
               <p style="margin: 0;"><strong>Reason:</strong> ${reason}</p>
             </div>` : ''}
             <p>If you believe this is a mistake, please contact our support team.</p>
-            <a href="${process.env.FRONTEND_URL}/contact" 
-               style="background-color: #2196F3; color: white; padding: 14px 20px; 
-                      text-decoration: none; display: inline-block; margin: 20px 0; 
-                      border-radius: 4px;">
-              Contact Support
-            </a>
           </div>
         `
-      });
+      };
 
-      if (error) throw error;
-      return data;
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- EMAIL DRY RUN ---', mailOptions);
+        return { id: 'dry_run' };
+      }
+
+      const info = await transporter.sendMail(mailOptions);
+      return info;
     } catch (error) {
       console.error('Failed to send account blocked email:', error);
+    }
+  }
+
+  async sendAccountUnblockedEmail(email, firstName) {
+    try {
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: 'Account Restored',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4CAF50;">Account Unblocked</h2>
+            <p>Hi ${firstName},</p>
+            <p>Your account access has been completely restored. You can now log back in and continue using our platform.</p>
+            <p>Welcome back!</p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- EMAIL DRY RUN ---', mailOptions);
+        return { id: 'dry_run' };
+      }
+
+      const info = await transporter.sendMail(mailOptions);
+      return info;
+    } catch (error) {
+      console.error('Failed to send account unblocked email:', error);
+    }
+  }
+
+  async sendAccountRestoredEmail(email, firstName) {
+    try {
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: 'Account Restored',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4CAF50;">Account Restored</h2>
+            <p>Hi ${firstName},</p>
+            <p>Your account has been restored from the trash. You can now log back in and continue using our platform.</p>
+            <p>Welcome back!</p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- EMAIL DRY RUN ---', mailOptions);
+        return { id: 'dry_run' };
+      }
+
+      const info = await transporter.sendMail(mailOptions);
+      return info;
+    } catch (error) {
+      console.error('Failed to send account restored email:', error);
+    }
+  }
+
+  async sendAccountDeletedEmail(email, firstName) {
+    try {
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: 'Account Deleted',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #d32f2f;">Account Deleted</h2>
+            <p>Hi ${firstName},</p>
+            <p>Your account on our platform has been deleted by an administrator.</p>
+            <p>All of your relevant standing access has been immediately revoked. If you believe this action was done in error or you have unresolved business, please contact our support team.</p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- EMAIL DRY RUN ---', mailOptions);
+        return { id: 'dry_run' };
+      }
+
+      const info = await transporter.sendMail(mailOptions);
+      return info;
+    } catch (error) {
+      console.error('Failed to send account deleted email:', error);
     }
   }
 
