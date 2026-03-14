@@ -70,7 +70,7 @@ exports.getUserChats = async (req, res) => {
     })
       .populate('participants', 'firstName lastName profilePicture role')
       .populate('lastMessage')
-      .populate('orderId', 'title status')
+      .populate('orderId', 'title status img')
       .sort({ lastMessageAt: -1 });
 
     res.json({ success: true, chats });

@@ -128,7 +128,7 @@ class EmailService {
 
   async sendPasswordResetEmail(email, firstName, resetToken) {
     try {
-      const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
       
       if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
         console.log('--- EMAIL DRY RUN ---');
