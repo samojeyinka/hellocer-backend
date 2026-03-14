@@ -85,7 +85,7 @@ exports.getAllOrders = async (req, res) => {
       .populate('gigId', 'title cover')
       .populate('clientId', 'firstName lastName profilePicture email')
       .populate('gigCreatorId', 'firstName lastName email')
-      .populate('hellocians', 'firstName lastName')
+      .populate('hellocians', 'firstName lastName username')
       .populate('chatId')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
