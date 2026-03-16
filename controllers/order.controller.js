@@ -138,6 +138,27 @@ exports.createOrder = async (orderData) => {
       price
     } = orderData;
 
+    // Find gig to get delivery timeframe
+    const gig = await Gig.findById(gigId);
+    if (!gig) throw new Error('Gig not found');
+
+    const selectedPackage = gig.pricing[pricingPackage];
+    const deliveryTimeframe = selectedPackage?.deliveryTimeframe || "3 days"; // default if not found
+
+    // Calculate delivery date based on timeframe string (e.g., "3 days", "1 week")
+    let deliveryDate = new Date();
+    const timeframeValue = parseInt(deliveryTimeframe);
+    if (deliveryTimeframe.toLowerCase().includes('day')) {
+      deliveryDate.setDate(deliveryDate.getDate() + timeframeValue);
+    } else if (deliveryTimeframe.toLowerCase().includes('week')) {
+      deliveryDate.setDate(deliveryDate.getDate() + (timeframeValue * 7));
+    } else if (deliveryTimeframe.toLowerCase().includes('month')) {
+      deliveryDate.setMonth(deliveryDate.getMonth() + timeframeValue);
+    } else {
+      // Default to 3 days if format is unknown
+      deliveryDate.setDate(deliveryDate.getDate() + 3);
+    }
+
     // Create order
     const order = await Order.create({
       gigId,
@@ -151,7 +172,9 @@ exports.createOrder = async (orderData) => {
       price,
       payment_method,
       payment_intent,
-      status: 'pending'
+      status: 'pending',
+      deliveryTimeframe,
+      deliveryDate
     });
 
     // Create order chat with all participants

@@ -48,6 +48,7 @@ const OrderSchema = new mongoose.Schema({
     enum: ["pending", "in-progress", "completed", "cancelled", "disputed"],
     default: "pending"
   },
+  deliveryTimeframe: String,
   deliveryDate: Date,
   deliveredAt: Date,
   chatId: {
