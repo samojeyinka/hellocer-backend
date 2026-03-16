@@ -451,43 +451,83 @@ class EmailService {
     }
   }
 
-  async sendCustomQuoteRequest(data) {
+  async sendQuoteNotificationToAdmin(adminEmail, data) {
     try {
-      const { name, email, projectDescription } = data;
-      const ownerEmail = 'samuelojeyinka@gmail.com';
-
-      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.log('--- CUSTOM QUOTE DRY RUN ---');
-        console.log(`To: ${ownerEmail}`);
-        console.log(`From: ${name} (${email})`);
-        console.log(`Subject: New Custom Quote Request`);
-        console.log(`Description: ${projectDescription}`);
-        console.log('----------------------------');
-        return { id: 'dry_run' };
-      }
+      const { name, email, projectName, projectDescription, skills } = data;
+      const dashboardLink = `${process.env.FRONTEND_URL}/admins/project-requests`;
 
       const mailOptions = {
         from: process.env.FROM_EMAIL || process.env.SMTP_USER,
-        to: ownerEmail,
+        to: adminEmail,
         replyTo: email,
-        subject: `New Custom Quote Request from ${name}`,
+        subject: `[New Project Request] ${projectName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-            <h2 style="color: #174568;">New Custom Quote Request</h2>
+            <h2 style="color: #174568;">New Project Quote Request</h2>
+            <p><strong>Submitter:</strong> ${name} (${email})</p>
+            <p><strong>Project Name:</strong> ${projectName}</p>
             <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>Name:</strong> ${name}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Project Description:</strong></p>
+              <p><strong>Description:</strong></p>
               <p style="white-space: pre-wrap;">${projectDescription}</p>
+              ${skills && skills.length > 0 ? `<p><strong>Skills:</strong> ${skills.join(', ')}</p>` : ''}
             </div>
-            <p style="color: #666; font-size: 12px;">This request was sent from the Custom Quote banner on Hellocer.</p>
+            <a href="${dashboardLink}" 
+               style="background-color: #174568; color: white; padding: 12px 20px;
+                      text-decoration: none; display: inline-block; margin: 10px 0; border-radius: 4px;">
+              View in Dashboard
+            </a>
+            <p style="color: #666; font-size: 11px; margin-top: 20px;">This is an automated notification from Hellocer.</p>
           </div>
         `
       };
 
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ADMIN QUOTE NOTIFICATION DRY RUN ---', { to: adminEmail });
+        return { id: 'dry_run' };
+      }
+
       return await transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error('Failed to send custom quote email:', error);
+      console.error('Failed to send admin quote notification:', error);
+    }
+  }
+
+  async sendQuoteReplyToSubmitter(submitterEmail, data) {
+    try {
+      const { submitterName, projectName, replyContent, adminName } = data;
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: submitterEmail,
+        subject: `Response to your project request: ${projectName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">Hello ${submitterName},</h2>
+            <p>Thank you for submitting your project request for <strong>"${projectName}"</strong>. We have reviewed your brief and have the following response:</p>
+            
+            <div style="border-left: 4px solid #174568; padding: 15px 20px; margin: 25px 0; background-color: #f8fbff; font-style: italic; font-size: 16px; line-height: 1.6; color: #333;">
+              ${replyContent.replace(/\n/g, '<br/>')}
+            </div>
+            
+            <p>If you have any further questions or would like to proceed, please reply directly to this email.</p>
+            
+            <p style="margin-top: 30px;">
+              Best regards,<br/>
+              ${adminName}<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- QUOTE REPLY DRY RUN ---', { to: submitterEmail });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send quote reply email:', error);
       throw error;
     }
   }

@@ -23,6 +23,7 @@ const hellocianRoutes = require('./routes/hellocian.routes');
 const adminRoutes = require('./routes/admin.routes');
 const clientRoutes = require('./routes/client.routes');
 const quoteRoutes = require('./routes/quote.routes');
+const adminStatsRoutes = require('./routes/admin.stats.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -39,7 +40,7 @@ connectDB();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000', 
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',  
   credentials: true
 }));
 app.use(morgan('dev'));
@@ -61,6 +62,7 @@ app.use('/api/hellocians', hellocianRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/quotes', quoteRoutes);
+app.use('/api/admin-stats', adminStatsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
