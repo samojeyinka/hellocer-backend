@@ -19,7 +19,10 @@ const NotificationSchema = new mongoose.Schema({
       "account_blocked",
       "account_unblocked",
       "gig_assigned",
-      "admin_message"
+      "admin_message",
+      "order_assigned",
+      "order_unassigned",
+      "order_extended"
     ],
     required: true
   },

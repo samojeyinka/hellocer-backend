@@ -531,6 +531,140 @@ class EmailService {
       throw error;
     }
   }
+
+  async sendOrderExtensionEmail(email, firstName, orderDetails) {
+    try {
+      const { orderId, title, oldDate, newDate, reason } = orderDetails;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `Order Delivery Extended: ${title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">Delivery Date Extended</h2>
+            <p>Hi ${firstName},</p>
+            <p>The delivery date for order <strong>"${title}"</strong> has been extended.</p>
+            
+            <div style="background-color: #f8fbff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e1efff;">
+              <p style="margin: 5px 0;"><strong>Order ID:</strong> #${orderId.substring(orderId.length - 6).toUpperCase()}</p>
+              <p style="margin: 5px 0; color: #666; text-decoration: line-through;"><strong>Original Date:</strong> ${new Date(oldDate).toLocaleDateString()}</p>
+              <p style="margin: 5px 0; color: #174568; font-size: 18px;"><strong>New Delivery Date:</strong> ${new Date(newDate).toLocaleDateString()}</p>
+              ${reason ? `<p style="margin: 15px 0 0 0; font-style: italic;"><strong>Reason:</strong> ${reason}</p>` : ''}
+            </div>
+            
+            <p>You can track the progress and communicate with the team via your dashboard.</p>
+            
+            <a href="${process.env.FRONTEND_URL}/dashboard" 
+               style="background-color: #174568; color: white; padding: 12px 20px;
+                      text-decoration: none; display: inline-block; margin: 10px 0; border-radius: 4px;">
+              View Dashboard
+            </a>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ORDER EXTENSION EMAIL DRY RUN ---', { to: email });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send order extension email:', error);
+    }
+  }
+
+  async sendOrderAssignmentEmail(email, firstName, orderDetails) {
+    try {
+      const { orderId, title } = orderDetails;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `New Project Assignment: ${title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">Project Assigned</h2>
+            <p>Hi ${firstName},</p>
+            <p>You have been assigned to work on order: <strong>"${title}"</strong>.</p>
+            
+            <div style="background-color: #f8fbff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e1efff;">
+              <p style="margin: 5px 0;"><strong>Order ID:</strong> #${orderId.substring(orderId.length - 6).toUpperCase()}</p>
+              <p style="margin: 5px 0;"><strong>Project:</strong> ${title}</p>
+            </div>
+            
+            <p>You can now view project details and participate in the group chat via your dashboard.</p>
+            
+            <a href="${process.env.FRONTEND_URL}/dashboard" 
+               style="background-color: #174568; color: white; padding: 12px 20px;
+                      text-decoration: none; display: inline-block; margin: 10px 0; border-radius: 4px;">
+              Go to Dashboard
+            </a>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ORDER ASSIGNMENT EMAIL DRY RUN ---', { to: email });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send order assignment email:', error);
+    }
+  }
+
+  async sendOrderRemovalEmail(email, firstName, orderDetails) {
+    try {
+      const { orderId, title } = orderDetails;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `Project Assignment Update: ${title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #666;">Project Update</h2>
+            <p>Hi ${firstName},</p>
+            <p>You have been removed from the order: <strong>"${title}"</strong>.</p>
+            
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>Order ID:</strong> #${orderId.substring(orderId.length - 6).toUpperCase()}</p>
+              <p style="margin: 5px 0;"><strong>Project:</strong> ${title}</p>
+            </div>
+            
+            <p>If you have any questions regarding this change, please reach out to the project administrator.</p>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ORDER REMOVAL EMAIL DRY RUN ---', { to: email });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send order removal email:', error);
+    }
+  }
 }
 
 module.exports = new EmailService();

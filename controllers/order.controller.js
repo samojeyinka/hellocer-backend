@@ -44,7 +44,7 @@ exports.getUserOrders = async (req, res) => {
 
     const orders = await Order.find(query)
       .populate('gigId', 'title cover')
-      .populate('clientId', 'firstName lastName profilePicture')
+      .populate('clientId', 'firstName lastName profilePicture country timeZone')
       .populate('gigCreatorId', 'firstName lastName')
       .populate('hellocians', 'firstName lastName')
       .populate('chatId')
@@ -263,7 +263,7 @@ exports.getOrderById = async (req, res) => {
 
     const order = await Order.findById(orderId)
       .populate('gigId')
-      .populate('clientId', 'firstName lastName profilePicture email')
+      .populate('clientId', 'firstName lastName profilePicture email country timeZone')
       .populate('gigCreatorId', 'firstName lastName profilePicture')
       .populate('hellocians', 'firstName lastName profilePicture')
       .populate('chatId');
@@ -392,5 +392,141 @@ exports.cancelOrder = async (req, res) => {
   } catch (error) {
     console.error('Cancel order error:', error);
     res.status(500).json({ error: 'Failed to cancel order' });
+  }
+};
+
+
+exports.extendOrderDeliveryTime = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { newDeliveryDate, reason } = req.body;
+
+    if (!newDeliveryDate) {
+      return res.status(400).json({ error: 'New delivery date is required' });
+    }
+
+    const order = await Order.findById(orderId)
+      .populate('clientId', 'firstName lastName email')
+      .populate('gigCreatorId')
+      .populate('hellocians');
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const oldDate = order.deliveryDate;
+    order.deliveryDate = new Date(newDeliveryDate);
+    await order.save();
+
+    // Notify all participants via Email & Sockets
+    const participants = [
+      { user: order.clientId, role: 'client' },
+      { user: order.gigCreatorId, role: 'creator' },
+      ...order.hellocians.map(h => ({ user: h, role: 'hellocian' }))
+    ];
+
+    for (const p of participants) {
+      if (p.user?.email) {
+        await EmailService.sendOrderExtensionEmail(
+          p.user.email,
+          p.user.firstName,
+          {
+            orderId: order._id.toString(),
+            title: order.title,
+            oldDate,
+            newDate: order.deliveryDate,
+            reason
+          }
+        );
+      }
+    }
+
+    const participantIds = participants.map(p => p.user._id);
+    SocketService.notifyOrderUpdate(orderId, { deliveryDate: order.deliveryDate }, participantIds);
+
+    res.json({ 
+      success: true, 
+      message: 'Delivery date extended successfully',
+      order 
+    });
+  } catch (error) {
+    console.error('Extend order error:', error);
+    res.status(500).json({ error: 'Failed to extend order delivery time' });
+  }
+};
+
+exports.updateOrderHellocians = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { hellocianIds } = req.body;
+
+    if (!Array.isArray(hellocianIds)) {
+      return res.status(400).json({ error: 'hellocianIds must be an array' });
+    }
+
+    const order = await Order.findById(orderId)
+      .populate('clientId')
+      .populate('gigCreatorId')
+      .populate('hellocians');
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const oldHellocianIds = order.hellocians.map(h => h._id.toString());
+    const newHellocianIds = hellocianIds.map(id => id.toString());
+
+    // Find added and removed Hellocians
+    const addedIds = newHellocianIds.filter(id => !oldHellocianIds.includes(id));
+    const removedIds = oldHellocianIds.filter(id => !newHellocianIds.includes(id));
+
+    // Update order
+    order.hellocians = hellocianIds;
+    await order.save();
+
+    // Sync Chat participants
+    const chat = await Chat.findById(order.chatId);
+    if (chat) {
+      const baseParticipants = [order.clientId, order.gigCreatorId].map(u => u._id.toString());
+      chat.participants = [...new Set([...baseParticipants, ...newHellocianIds])];
+      await chat.save();
+    }
+
+    // Send Emails to added Hellocians
+    if (addedIds.length > 0) {
+      const addedUsers = await User.find({ _id: { $in: addedIds } });
+      for (const user of addedUsers) {
+        await EmailService.sendOrderAssignmentEmail(user.email, user.firstName, {
+          orderId: order._id.toString(),
+          title: order.title
+        });
+      }
+    }
+
+    // Send Emails to removed Hellocians
+    if (removedIds.length > 0) {
+      const removedUsers = await User.find({ _id: { $in: removedIds } });
+      for (const user of removedUsers) {
+        await EmailService.sendOrderRemovalEmail(user.email, user.firstName, {
+          orderId: order._id.toString(),
+          title: order.title
+        });
+      }
+    }
+
+    // Emit socket update to all participants (old and new)
+    const allAffectedParticipants = [...new Set([...oldHellocianIds, ...newHellocianIds, order.clientId._id.toString(), order.gigCreatorId._id.toString()])];
+    SocketService.notifyOrderUpdate(orderId, { hellocians: hellocianIds }, allAffectedParticipants);
+
+    const updatedOrder = await Order.findById(orderId).populate('hellocians', 'firstName lastName username');
+
+    res.json({
+      success: true,
+      message: 'Hellocians updated successfully',
+      order: updatedOrder
+    });
+  } catch (error) {
+    console.error('Update order hellocians error:', error);
+    res.status(500).json({ error: 'Failed to update Hellocians' });
   }
 };

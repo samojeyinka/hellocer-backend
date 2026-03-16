@@ -30,7 +30,7 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     enum: ["basic", "standard", "advanced", "pro", "premium"],
     required: true
-  },
+  }, 
   price: {
     type: Number,
     required: true

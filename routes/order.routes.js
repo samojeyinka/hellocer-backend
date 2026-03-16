@@ -7,7 +7,9 @@ const {
   getAllOrders,
   getOrderById, 
   updateOrderStatus, 
-  cancelOrder 
+  cancelOrder,
+  extendOrderDeliveryTime,
+  updateOrderHellocians
 } = require('../controllers/order.controller');
 
 router.use(protect, checkActivation);
@@ -23,6 +25,12 @@ router.patch('/:orderId/status', updateOrderStatus);
 
 // Cancel order
 router.post('/:orderId/cancel', cancelOrder);
+
+// Extend delivery time
+router.patch('/:orderId/extend', restrictTo('admin', 'super-admin'), extendOrderDeliveryTime);
+
+// Update Hellocians
+router.patch('/:orderId/hellocians', restrictTo('admin', 'super-admin'), updateOrderHellocians);
 
 // Admin only - get all orders with stats
 router.get('/admin/all', restrictTo('admin', 'super-admin'), getAllOrders);
