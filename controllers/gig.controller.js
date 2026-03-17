@@ -37,23 +37,33 @@ exports.createGig = async (req, res) => {
 // ─── Get All Gigs (public — exclude soft-deleted and drafts) ─────────────────
 exports.getAllGigs = async (req, res) => {
   try {
-    const { category, search, minPrice, maxPrice, tags, page = 1, limit = 12 } = req.query;
+    const { category, search, minPrice, maxPrice, tags, sort, page = 1, limit = 12 } = req.query;
 
     const query = { isActive: true, status: 'published', deletedAt: null };
 
+    // Support single or multiple categories (comma separated)
     if (category) {
       if (category !== 'all' && category !== 'all-services') {
-        const isObjectId = /^[0-9a-fA-F]{24}$/.test(category);
-        if (isObjectId) {
-          query.category = category;
-        } else {
-          const Category = require('../models/category.model');
-          const categoryDoc = await Category.findOne({ slug: category });
-          if (categoryDoc) {
-            query.category = categoryDoc._id;
+        const categories = category.split(',');
+        const categoryIds = [];
+
+        for (const cat of categories) {
+          const isObjectId = /^[0-9a-fA-F]{24}$/.test(cat);
+          if (isObjectId) {
+            categoryIds.push(cat);
           } else {
-            return res.json({ success: true, gigs: [], pagination: { total: 0, page: parseInt(page), pages: 0 } });
+            const Category = require('../models/category.model');
+            const categoryDoc = await Category.findOne({ slug: cat });
+            if (categoryDoc) {
+              categoryIds.push(categoryDoc._id);
+            }
           }
+        }
+
+        if (categoryIds.length > 0) {
+          query.category = { $in: categoryIds };
+        } else {
+          return res.json({ success: true, gigs: [], pagination: { total: 0, page: parseInt(page), pages: 0 } });
         }
       }
     }
@@ -67,7 +77,6 @@ exports.getAllGigs = async (req, res) => {
 
     if (tags) {
       const tagList = tags.split(',');
-      // Check if they are IDs or names/slugs
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(tagList[0]);
       if (isObjectId) {
         query.tags = { $in: tagList };
@@ -77,7 +86,6 @@ exports.getAllGigs = async (req, res) => {
         if (tagDocs.length > 0) {
           query.tags = { $in: tagDocs.map(td => td._id) };
         } else {
-           // If no tags found but were requested, return empty
            return res.json({ success: true, gigs: [], pagination: { total: 0, page: parseInt(page), pages: 0 } });
         }
       }
@@ -91,10 +99,18 @@ exports.getAllGigs = async (req, res) => {
       ];
     }
 
+    // Sorting logic
+    let sortOption = { createdAt: -1 };
+    if (sort === 'sales') {
+      sortOption = { sales: -1 };
+    } else if (sort === 'rating') {
+      sortOption = { totalStars: -1 }; // Simplification for popular
+    }
+
     const gigs = await Gig.find(query)
       .populate('category', 'name slug')
       .populate('creator', 'firstName lastName username profilePicture')
-      .sort({ createdAt: -1 })
+      .sort(sortOption)
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
