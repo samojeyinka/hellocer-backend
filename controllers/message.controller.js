@@ -146,3 +146,24 @@ exports.markMessagesAsRead = async (req, res) => {
     res.status(500).json({ error: 'Failed to mark messages as read' });
   }
 };
+
+exports.getUnreadMessageCount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find all chats user is participant in
+    const chats = await Chat.find({ participants: userId });
+    const chatIds = chats.map(c => c._id);
+
+    // Count messages in these chats where user hasn't read them
+    const count = await Message.countDocuments({
+      chatId: { $in: chatIds },
+      'isRead.userId': { $ne: userId }
+    });
+
+    res.json({ success: true, count });
+  } catch (error) {
+    console.error('Get unread count error:', error);
+    res.status(500).json({ error: 'Failed to get unread count' });
+  }
+};
