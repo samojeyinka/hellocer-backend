@@ -42,6 +42,7 @@ exports.sendMessage = async (req, res) => {
     const participantIds = chat.participants.map(p => p._id);
     SocketService.notifyNewMessage(chatId, populatedMessage, participantIds);
 
+    /* 
     // Create notification for other participants
     const otherParticipants = chat.participants.filter(
       p => p._id.toString() !== senderId.toString()
@@ -57,6 +58,7 @@ exports.sendMessage = async (req, res) => {
         relatedModel: 'Chat'
       });
     }
+    */
 
     res.status(201).json({ success: true, message: populatedMessage });
   } catch (error) {

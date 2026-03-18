@@ -88,7 +88,7 @@ exports.getChatById = async (req, res) => {
     const chat = await Chat.findById(chatId)
       .populate('participants', 'firstName lastName profilePicture role')
       .populate('lastMessage')
-      .populate('orderId', 'title status gigId');
+      .populate('orderId', 'title status gigId img');
 
     if (!chat) {
       return res.status(404).json({ error: 'Chat not found' });

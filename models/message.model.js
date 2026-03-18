@@ -16,6 +16,8 @@ const MessageSchema = new mongoose.Schema({
   },
   attachments: [{
     url: String,
+    name: String,
+    size: String,
     type: {
       type: String,
       enum: ["image", "document"]

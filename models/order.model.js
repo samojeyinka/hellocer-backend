@@ -24,6 +24,7 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  
   img: String,
   gigCategory: [String],
   pricingPackage: {
