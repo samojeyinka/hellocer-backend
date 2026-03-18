@@ -169,6 +169,14 @@ const UserSchema = new mongoose.Schema({
     ref: 'Gig',
     default: []
   }],
+  socials: {
+    facebook: { type: String, default: "" },
+    twitter: { type: String, default: "" },
+    instagram: { type: String, default: "" },
+    linkedin: { type: String, default: "" },
+    youtube: { type: String, default: "" },
+    github: { type: String, default: "" }
+  },
 }, { 
   timestamps: true
 });

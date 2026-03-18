@@ -271,6 +271,28 @@ exports.deleteHellocian = async (req, res) => {
 };
 
 /**
+ * @desc    Get only activated Hellocians (for public /hire-talents)
+ * @route   GET /api/hellocians/public
+ * @access  Public
+ */
+exports.getPublicHellocians = async (req, res) => {
+  try {
+    const hellocians = await User.find({ role: 'hellocian', isActivated: true, deletedAt: null, isBlocked: false })
+      .select('firstName lastName username profilePicture bio socials directMessages')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: hellocians.length,
+      hellocians
+    });
+  } catch (error) {
+    console.error('Get public hellocians error:', error);
+    res.status(500).json({ error: 'Failed to fetch Hellocians', details: error.message });
+  }
+};
+
+/**
  * @desc    Get only activated Hellocians (for gig assignment)
  * @route   GET /api/hellocians/active
  * @access  Private (admin, super-admin)

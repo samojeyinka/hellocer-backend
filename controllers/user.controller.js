@@ -6,17 +6,21 @@ const NotificationService = require('../services/notification.service');
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { 
-      firstName, lastName, profilePicture, 
-      address, city, postalCode, country, timeZone 
-    } = req.body;
+    const updateData = {};
+    const allowedFields = [
+      'firstName', 'lastName', 'profilePicture', 
+      'address', 'city', 'postalCode', 'country', 'timeZone', 'socials'
+    ];
+
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { 
-        firstName, lastName, profilePicture,
-        address, city, postalCode, country, timeZone 
-      },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password');
 

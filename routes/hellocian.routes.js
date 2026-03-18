@@ -15,6 +15,9 @@ router.post(
 // Public: hellocian sets their password using the one-time token
 router.post('/setup-password', hellocianController.setupPassword);
 
+// Public: list hellocians for /hire-talents
+router.get('/public', hellocianController.getPublicHellocians);
+
 // Admin/Super-Admin: list all hellocians
 router.get(
   '/',
