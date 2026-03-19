@@ -1,7 +1,114 @@
 const Chat = require('../models/chat.model');
 const User = require('../models/user.model');
+const mongoose = require('mongoose');
 const EmailService = require('../services/email.service');
 const { isUserOnline } = require('../config/socket');
+
+exports.addParticipant = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { userIdToAdd } = req.body;
+
+    // Verify requester is admin or super-admin
+    if (req.user.role !== 'admin' && req.user.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Permission denied. Only admins can add participants.' });
+    }
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    if (chat.chatType !== 'order') {
+      return res.status(400).json({ error: 'Participants can only be added to order chats' });
+    }
+
+    // Verify user exists
+    const userToAdd = await User.findById(userIdToAdd);
+    if (!userToAdd) {
+      return res.status(404).json({ error: 'User to add not found' });
+    }
+
+    // Check if already a participant
+    if (chat.participants.some(p => p.toString() === userIdToAdd)) {
+      return res.status(400).json({ error: 'User is already a participant' });
+    }
+
+    chat.participants.push(userIdToAdd);
+    await chat.save();
+
+    // Send email notification
+    try {
+      if (chat.orderId) {
+        const Order = mongoose.model('Order');
+        const order = await Order.findById(chat.orderId);
+        if (order) {
+          await EmailService.sendOrderAssignmentEmail(userToAdd.email, userToAdd.firstName, {
+            orderId: order._id.toString(),
+            title: order.title
+          });
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send participant addition email:', emailError);
+      // Don't fail the request if email sending fails
+    }
+
+    res.json({ success: true, message: 'Participant added successfully' });
+  } catch (error) {
+    console.error('Add participant error:', error);
+    res.status(500).json({ error: 'Failed to add participant' });
+  }
+};
+
+exports.removeParticipant = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { userIdToRemove } = req.body;
+
+    // Verify requester is admin or super-admin
+    if (req.user.role !== 'admin' && req.user.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Permission denied. Only admins can remove participants.' });
+    }
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    if (chat.chatType !== 'order') {
+      return res.status(400).json({ error: 'Participants can only be removed from order chats' });
+    }
+
+    chat.participants = chat.participants.filter(
+      p => p.toString() !== userIdToRemove
+    );
+    await chat.save();
+
+    // Send email notification
+    try {
+      const userToRemove = await User.findById(userIdToRemove);
+      if (userToRemove && chat.orderId) {
+        const Order = mongoose.model('Order');
+        const order = await Order.findById(chat.orderId);
+        if (order) {
+          await EmailService.sendOrderRemovalEmail(userToRemove.email, userToRemove.firstName, {
+            orderId: order._id.toString(),
+            title: order.title
+          });
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send participant removal email:', emailError);
+      // Don't fail the request if email sending fails
+    }
+
+    res.json({ success: true, message: 'Participant removed successfully' });
+  } catch (error) {
+    console.error('Remove participant error:', error);
+    res.status(500).json({ error: 'Failed to remove participant' });
+  }
+};
 
 exports.createDirectChat = async (req, res) => {
   try {

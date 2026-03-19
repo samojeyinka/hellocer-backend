@@ -10,6 +10,8 @@ router.post('/direct', chatController.createDirectChat);
 router.post('/:chatId/call', chatController.initiateCall);
 router.get('/', chatController.getUserChats);
 router.get('/:chatId', chatController.getChatById);
+router.patch('/:chatId/participants/add', chatController.addParticipant);
+router.patch('/:chatId/participants/remove', chatController.removeParticipant);
 router.delete('/:chatId', chatController.deleteChat);
 
 module.exports = router;

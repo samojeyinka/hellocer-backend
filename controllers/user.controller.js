@@ -372,11 +372,19 @@ exports.deleteUser = async (req, res) => {
 // Admin/Super-Admin: Get all users
 exports.getAllUsers = async (req, res) => {
   try {
-    const { role, isBlocked, page = 1, limit = 20 } = req.query;
+    const { role, isBlocked, page = 1, limit = 20, search } = req.query;
 
     const query = {};
     if (role) query.role = role;
     if (isBlocked !== undefined) query.isBlocked = isBlocked === 'true';
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { username: { $regex: search, $options: 'i' } }
+      ];
+    }
 
     const users = await User.find(query)
       .select('-password')
