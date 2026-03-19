@@ -9,7 +9,8 @@ const {
   updateOrderStatus, 
   cancelOrder,
   extendOrderDeliveryTime,
-  updateOrderHellocians
+  updateOrderHellocians,
+  remindReview
 } = require('../controllers/order.controller');
 
 router.use(protect, checkActivation);
@@ -31,6 +32,9 @@ router.patch('/:orderId/extend', restrictTo('admin', 'super-admin'), extendOrder
 
 // Update Hellocians
 router.patch('/:orderId/hellocians', restrictTo('admin', 'super-admin'), updateOrderHellocians);
+
+// Remind for review
+router.post('/:orderId/remind-review', restrictTo('admin', 'super-admin'), remindReview);
 
 // Admin only - get all orders with stats
 router.get('/admin/all', restrictTo('admin', 'super-admin'), getAllOrders);

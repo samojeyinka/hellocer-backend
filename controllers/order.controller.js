@@ -317,6 +317,18 @@ exports.updateOrderStatus = async (req, res) => {
     order.status = status;
     if (status === 'completed') {
       order.deliveredAt = new Date();
+      
+      // Send review prompt email to client
+      if (order.clientId?.email) {
+        await EmailService.sendReviewPromptEmail(
+          order.clientId.email,
+          order.clientId.firstName,
+          {
+            orderId: order._id.toString(),
+            title: order.title
+          }
+        );
+      }
     }
     await order.save();
 
@@ -528,5 +540,50 @@ exports.updateOrderHellocians = async (req, res) => {
   } catch (error) {
     console.error('Update order hellocians error:', error);
     res.status(500).json({ error: 'Failed to update Hellocians' });
+  }
+};
+
+exports.remindReview = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await Order.findById(orderId).populate('clientId');
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    if (order.status !== 'completed') {
+      return res.status(400).json({ error: 'Can only remind for completed orders' });
+    }
+    
+    if (order.isReviewed) {
+      return res.status(400).json({ error: 'Order already reviewed' });
+    }
+    
+    if (!order.clientId?.email) {
+      console.error('Review reminder failed: Client email missing', { orderId: order._id, clientId: order.clientId?._id });
+      return res.status(400).json({ error: 'Client email not found. Cannot send reminder.' });
+    }
+
+    try {
+      const info = await EmailService.sendReviewReminderEmail(
+        order.clientId.email,
+        order.clientId.firstName,
+        {
+          orderId: order._id.toString(),
+          title: order.title
+        }
+      );
+      
+      console.log('Review reminder sent:', info?.messageId || 'Success');
+      res.json({ success: true, message: 'Review reminder sent successfully' });
+    } catch (emailError) {
+      console.error('EmailService.sendReviewReminderEmail failed:', emailError);
+      return res.status(500).json({ error: 'Failed to send email. Please check SMTP settings.' });
+    }
+  } catch (error) {
+    console.error('Remind review controller error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };

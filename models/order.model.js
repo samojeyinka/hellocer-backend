@@ -55,6 +55,10 @@ const OrderSchema = new mongoose.Schema({
   chatId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Chat"
+  },
+  isReviewed: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

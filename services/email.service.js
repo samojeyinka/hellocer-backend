@@ -753,6 +753,103 @@ class EmailService {
     }
   }
 
+  async sendReviewPromptEmail(email, firstName, orderDetails) {
+    try {
+      const { orderId, title } = orderDetails;
+      const reviewLink = `${process.env.FRONTEND_URL}/clients/projects`;
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `How was your experience? Review your order: ${title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">Your Order is Complete!</h2>
+            <p>Hi ${firstName},</p>
+            <p>Great news! Your order <strong>"${title}"</strong> has been marked as completed.</p>
+            <p>We'd love to hear about your experience. Your feedback helps us improve and helps other clients find the best services.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${reviewLink}" 
+                 style="background-color: #ffc107; color: #000; padding: 14px 25px; 
+                        text-decoration: none; display: inline-block; border-radius: 4px; font-weight: bold;">
+                Leave a Review
+              </a>
+            </div>
+            
+            <p style="font-size: 13px; color: #666;">
+              Order ID: #${orderId.substring(orderId.length - 6).toUpperCase()}
+            </p>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- REVIEW PROMPT EMAIL DRY RUN ---', { to: email });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send review prompt email:', error);
+    }
+  }
+
+  async sendReviewReminderEmail(email, firstName, orderDetails) {
+    try {
+      const { orderId, title } = orderDetails;
+      const reviewLink = `${process.env.FRONTEND_URL}/clients/projects`;
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `Friendly Reminder: Review your order for ${title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">We'd Love Your Feedback</h2>
+            <p>Hi ${firstName},</p>
+            <p>This is a friendly reminder to leave a review for your recent project <strong>"${title}"</strong>.</p>
+            <p>It only takes a minute and really helps the team!</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${reviewLink}" 
+                 style="background-color: #ffc107; color: #000; padding: 14px 25px; 
+                        text-decoration: none; display: inline-block; border-radius: 4px; font-weight: bold;">
+                Write a Review
+              </a>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Thank you,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- REVIEW REMINDER EMAIL DRY RUN ---', { 
+            to: email, 
+            orderId: orderId,
+            frontendUrl: process.env.FRONTEND_URL 
+        });
+        return { id: 'dry_run' };
+      }
+
+      console.log(`Sending review reminder to ${email}...`);
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully:', info.messageId);
+      return info;
+    } catch (error) {
+      console.error('Failed to send review reminder email:', error);
+      throw error; // Throw so controller can catch it
+    }
+  }
 }
 
 module.exports = new EmailService();

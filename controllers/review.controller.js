@@ -14,6 +14,12 @@ exports.createReview = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    // Use order.gigId if gigId is missing from request body
+    const finalGigId = gigId || order.gigId;
+    if (!finalGigId) {
+      return res.status(400).json({ error: 'Gig ID is required' });
+    }
+
     if (order.clientId.toString() !== userId.toString()) {
       return res.status(403).json({ error: 'Not authorized to review this order' });
     }
@@ -30,17 +36,21 @@ exports.createReview = async (req, res) => {
 
     const review = await Review.create({
       orderId,
-      gigId,
+      gigId: finalGigId,
       userId,
       rating,
       comment
     });
 
     // Update gig ratings
-    const gig = await Gig.findById(gigId);
+    const gig = await Gig.findById(finalGigId);
     gig.totalStars += rating;
     gig.starNumber += 1;
     await gig.save();
+
+    // Mark order as reviewed
+    order.isReviewed = true;
+    await order.save();
 
     // Notify gig creator
     await NotificationService.createNotification({
@@ -124,66 +134,9 @@ exports.respondToReview = async (req, res) => {
 };
 
 exports.updateReview = async (req, res) => {
-  try {
-    const { reviewId } = req.params;
-    const { rating, comment } = req.body;
-    const userId = req.user._id;
-
-    const review = await Review.findById(reviewId);
-    if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
-    }
-
-    if (review.userId.toString() !== userId.toString()) {
-      return res.status(403).json({ error: 'Not authorized to update this review' });
-    }
-
-    const oldRating = review.rating;
-    review.rating = rating;
-    review.comment = comment;
-    await review.save();
-
-    // Update gig ratings
-    const gig = await Gig.findById(review.gigId);
-    gig.totalStars = gig.totalStars - oldRating + rating;
-    await gig.save();
-
-    res.json({ success: true, review });
-  } catch (error) {
-    console.error('Update review error:', error);
-    res.status(500).json({ error: 'Failed to update review' });
-  }
+  return res.status(403).json({ error: 'Reviews cannot be edited once submitted' });
 };
 
 exports.deleteReview = async (req, res) => {
-  try {
-    const { reviewId } = req.params;
-    const userId = req.user._id;
-
-    const review = await Review.findById(reviewId);
-    if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
-    }
-
-    const canDelete = 
-      review.userId.toString() === userId.toString() ||
-      ['admin', 'super-admin'].includes(req.user.role);
-
-    if (!canDelete) {
-      return res.status(403).json({ error: 'Not authorized to delete this review' });
-    }
-
-    // Update gig ratings
-    const gig = await Gig.findById(review.gigId);
-    gig.totalStars -= review.rating;
-    gig.starNumber -= 1;
-    await gig.save();
-
-    await Review.findByIdAndDelete(reviewId);
-
-    res.json({ success: true, message: 'Review deleted successfully' });
-  } catch (error) {
-    console.error('Delete review error:', error);
-    res.status(500).json({ error: 'Failed to delete review' });
-  }
+  return res.status(403).json({ error: 'Reviews cannot be deleted once submitted' });
 };
