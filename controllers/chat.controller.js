@@ -1,17 +1,6 @@
 const Chat = require('../models/chat.model');
 const User = require('../models/user.model');
 
-// Check if direct chat between users is allowed
-const canDirectMessage = (user1Role, user2Role) => {
-  const rules = {
-    'user': ['admin', 'super-admin'],
-    'hellocian': ['admin', 'super-admin'],
-    'admin': ['user', 'hellocian', 'admin', 'super-admin'],
-    'super-admin': ['user', 'hellocian', 'admin', 'super-admin']
-  };
-  return rules[user1Role]?.includes(user2Role) || false;
-};
-
 exports.createDirectChat = async (req, res) => {
   try {
     const { recipientId } = req.body;
@@ -26,10 +15,10 @@ exports.createDirectChat = async (req, res) => {
       return res.status(404).json({ error: 'Recipient not found' });
     }
 
-    // Check if direct messaging is allowed
-    if (!canDirectMessage(req.user.role, recipient.role)) {
+    // Check if recipient allows direct messaging
+    if (!recipient.directMessages) {
       return res.status(403).json({ 
-        error: 'You are not allowed to message this user directly' 
+        error: 'This user has disabled direct messaging' 
       });
     }
 
@@ -37,7 +26,7 @@ exports.createDirectChat = async (req, res) => {
     const existingChat = await Chat.findOne({
       chatType: 'direct',
       participants: { $all: [senderId, recipientId] }
-    }).populate('participants', 'firstName lastName profilePicture role')
+    }).populate('participants', 'firstName lastName profilePicture role directMessages')
       .populate('lastMessage');
 
     if (existingChat) {
@@ -51,7 +40,7 @@ exports.createDirectChat = async (req, res) => {
     });
 
     const populatedChat = await Chat.findById(newChat._id)
-      .populate('participants', 'firstName lastName profilePicture role')
+      .populate('participants', 'firstName lastName profilePicture role directMessages')
       .populate('lastMessage');
 
     res.status(201).json({ success: true, chat: populatedChat });
@@ -68,10 +57,10 @@ exports.getUserChats = async (req, res) => {
     const chats = await Chat.find({
       participants: userId
     })
-      .populate('participants', 'firstName lastName profilePicture role')
+      .populate('participants', 'firstName lastName profilePicture role directMessages')
       .populate('lastMessage')
       .populate('orderId', 'title status img')
-      .sort({ lastMessageAt: -1 });
+      .sort({ updatedAt: -1 });
 
     res.json({ success: true, chats });
   } catch (error) {
@@ -86,7 +75,7 @@ exports.getChatById = async (req, res) => {
     const userId = req.user._id;
 
     const chat = await Chat.findById(chatId)
-      .populate('participants', 'firstName lastName profilePicture role')
+      .populate('participants', 'firstName lastName profilePicture role directMessages')
       .populate('lastMessage')
       .populate('orderId', 'title status gigId img');
 
