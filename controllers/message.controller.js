@@ -2,6 +2,8 @@ const Message = require('../models/message.model');
 const Chat = require('../models/chat.model');
 const SocketService = require('../services/socket.service');
 const NotificationService = require('../services/notification.service');
+const EmailService = require('../services/email.service');
+const { isUserOnline } = require('../config/socket');
 
 exports.sendMessage = async (req, res) => {
   try {
@@ -41,6 +43,24 @@ exports.sendMessage = async (req, res) => {
     // Emit real-time notification
     const participantIds = chat.participants.map(p => p._id);
     SocketService.notifyNewMessage(chatId, populatedMessage, participantIds);
+
+    // Send email notifications to offline participants
+    const otherParticipants = chat.participants.filter(
+      p => p._id.toString() !== senderId.toString()
+    );
+
+    for (const participant of otherParticipants) {
+      if (!isUserOnline(participant._id)) {
+        const senderName = `${req.user.firstName} ${req.user.lastName}`;
+        const chatLink = `${process.env.FRONTEND_URL}/clients/messages/${chatId}`;
+
+        EmailService.sendMessageNotification(
+          participant.email,
+          participant.firstName,
+          { senderName, content, chatLink }
+        ).catch(err => console.error('Failed to send message email:', err));
+      }
+    }
 
     /* 
     // Create notification for other participants

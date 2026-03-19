@@ -9,6 +9,48 @@ const transporter = nodemailer.createTransport({
 });
 
 class EmailService {
+  async sendMessageNotification(email, firstName, messageData) {
+    try {
+      const { senderName, content, chatLink } = messageData;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `New Message from ${senderName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">You have a new message</h2>
+            <p>Hi ${firstName},</p>
+            <p><strong>${senderName}</strong> sent you a message:</p>
+            
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #174568;">
+              <p style="margin: 0; color: #333;">${content}</p>
+            </div>
+            
+            <a href="${chatLink}" 
+               style="background-color: #174568; color: white; padding: 12px 20px;
+                      text-decoration: none; display: inline-block; margin: 10px 0; border-radius: 4px;">
+              Reply in Chat
+            </a>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- MESSAGE EMAIL DRY RUN ---', { to: email, senderName });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send message notification email:', error);
+    }
+  }
   async sendAdminActivationCode(email, activationCode) {
     try {
       if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -660,11 +702,57 @@ class EmailService {
         return { id: 'dry_run' };
       }
 
-      return await transporter.sendMail(mailOptions);
+      const info = await transporter.sendMail(mailOptions);
+      return info;
     } catch (error) {
       console.error('Failed to send order removal email:', error);
     }
   }
+
+  async sendCallInvitation(email, firstName, callData) {
+    try {
+      const { callerName, roomID, callType } = callData;
+      const joinLink = `${process.env.FRONTEND_URL}/call/${roomID}?type=${callType}`;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `Incoming ${callType} Call from ${callerName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px; text-align: center;">
+            <h2 style="color: #174568;">${callType.charAt(0).toUpperCase() + callType.slice(1)} Call Invitation</h2>
+            <p style="font-size: 16px;">${callerName} is inviting you to a ${callType} call.</p>
+            
+            <div style="margin: 30px 0;">
+              <a href="${joinLink}" 
+                 style="background-color: #0077B6; color: white; padding: 15px 30px; 
+                        text-decoration: none; display: inline-block; border-radius: 8px; font-weight: bold; font-size: 18px;">
+                Join Call Now
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">If you can't click the button, copy and paste this link into your browser:</p>
+            <p style="color: #0077B6; font-size: 12px; word-break: break-all;">${joinLink}</p>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- CALL INVITATION DRY RUN ---', { to: email, joinLink });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send call invitation email:', error);
+    }
+  }
+
 }
 
 module.exports = new EmailService();

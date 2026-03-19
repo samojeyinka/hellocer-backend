@@ -1,5 +1,7 @@
 const Chat = require('../models/chat.model');
 const User = require('../models/user.model');
+const EmailService = require('../services/email.service');
+const { isUserOnline } = require('../config/socket');
 
 exports.createDirectChat = async (req, res) => {
   try {
@@ -61,8 +63,16 @@ exports.getUserChats = async (req, res) => {
       .populate('lastMessage')
       .populate('orderId', 'title status img')
       .sort({ updatedAt: -1 });
+    const chatsWithOnlineStatus = chats.map(chat => {
+      const chatObj = chat.toObject();
+      chatObj.participants = chatObj.participants.map(p => ({
+        ...p,
+        isOnline: isUserOnline(p._id)
+      }));
+      return chatObj;
+    });
 
-    res.json({ success: true, chats });
+    res.json({ success: true, chats: chatsWithOnlineStatus });
   } catch (error) {
     console.error('Get chats error:', error);
     res.status(500).json({ error: 'Failed to get chats' });
@@ -92,10 +102,61 @@ exports.getChatById = async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json({ success: true, chat });
+    const chatObj = chat.toObject();
+    chatObj.participants = chatObj.participants.map(p => ({
+      ...p,
+      isOnline: isUserOnline(p._id)
+    }));
+
+    res.json({ success: true, chat: chatObj });
   } catch (error) {
     console.error('Get chat error:', error);
-    res.status(500).json({ error: 'Failed to get chat' });
+    res.status(500).json({ error: 'Failed to fetch chat' });
+  }
+};
+
+exports.initiateCall = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { callType, roomID } = req.body;
+    const callerId = req.user._id;
+
+    const chat = await Chat.findById(chatId).populate('participants');
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    // Verify caller is participant
+    const isParticipant = chat.participants.some(
+      p => p._id.toString() === callerId.toString()
+    );
+
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Not a participant of this chat' });
+    }
+
+    const caller = await User.findById(callerId);
+    const callerName = `${caller.firstName} ${caller.lastName}`;
+
+    // Send email invitations to all other participants
+    const otherParticipants = chat.participants.filter(
+      p => p._id.toString() !== callerId.toString()
+    );
+
+    const emailPromises = otherParticipants.map(participant => 
+      EmailService.sendCallInvitation(participant.email, participant.firstName, {
+        callerName,
+        roomID,
+        callType
+      })
+    );
+
+    await Promise.all(emailPromises);
+
+    res.json({ success: true, message: 'Call invitations sent' });
+  } catch (error) {
+    console.error('Initiate call error:', error);
+    res.status(500).json({ error: 'Failed to initiate call' });
   }
 };
 
