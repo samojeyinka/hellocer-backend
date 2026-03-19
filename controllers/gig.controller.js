@@ -420,3 +420,93 @@ exports.getAllTags = async (req, res) => {
     res.status(500).json({ error: 'Failed to get tags' });
   }
 };
+
+// ─── Get Showcase Data for Home Page ──────────────────────────────────────────
+exports.getShowcaseData = async (req, res) => {
+  try {
+    const Category = require('../models/category.model');
+    let handpickedCategories = [];
+
+    // 1. Get Handpicked Recommendations
+    if (req.user) {
+      // Find categories from previous orders
+      const userOrders = await Order.find({ clientId: req.user._id }).distinct('gigCategory');
+      // Find categories from bookmarks (need to populate or lookup)
+      const user = await User.findById(req.user._id).populate({
+        path: 'savedGigs',
+        select: 'category'
+      });
+      
+      const bookmarkedCategories = user?.savedGigs?.flatMap(g => g.category.map(c => c.toString())) || [];
+      handpickedCategories = [...new Set([...userOrders, ...bookmarkedCategories])];
+    }
+
+    let handpickedGigs;
+    if (handpickedCategories.length > 0) {
+      handpickedGigs = await Gig.find({
+        category: { $in: handpickedCategories },
+        isActive: true,
+        status: 'published',
+        deletedAt: null
+      })
+      .sort({ sales: -1, totalStars: -1 })
+      .limit(4);
+    }
+
+    // Fallback/Guest: Handpicked = Best Selling
+    const bestSellingGigs = await Gig.find({
+      isActive: true,
+      status: 'published',
+      deletedAt: null
+    })
+    .sort({ sales: -1 })
+    .limit(4);
+
+    if (!handpickedGigs || handpickedGigs.length === 0) {
+      handpickedGigs = bestSellingGigs;
+    }
+
+    // 2. Find Best Performing Category (most sales)
+    const categoryStats = await Gig.aggregate([
+      { $match: { isActive: true, status: 'published', deletedAt: null } },
+      { $unwind: '$category' },
+      { $group: { _id: '$category', totalSales: { $sum: '$sales' } } },
+      { $sort: { totalSales: -1 } },
+      { $limit: 1 }
+    ]);
+
+    let bestCategory = null;
+    if (categoryStats.length > 0) {
+      const catDoc = await Category.findById(categoryStats[0]._id);
+      if (catDoc) {
+        // Find best gig in this category
+        const topGig = await Gig.findOne({
+          category: catDoc._id,
+          isActive: true,
+          status: 'published',
+          deletedAt: null
+        }).sort({ sales: -1 });
+
+        bestCategory = {
+          _id: catDoc._id,
+          name: catDoc.name,
+          slug: catDoc.slug,
+          topGig: topGig ? { slug: topGig.slug, cover: topGig.cover, title: topGig.title } : null
+        };
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        handpicked: handpickedGigs,
+        bestCategory: bestCategory,
+        bestSelling: bestSellingGigs
+      }
+    });
+
+  } catch (error) {
+    console.error('Get showcase data error:', error);
+    res.status(500).json({ error: 'Failed to get showcase data' });
+  }
+};

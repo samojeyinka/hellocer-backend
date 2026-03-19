@@ -1,11 +1,12 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router(); 
 const gigController = require('../controllers/gig.controller');
 const { protect, optionalProtect } = require('../middleware/auth.middleware');
 const { restrictTo, checkActivation } = require('../middleware/roleCheck.middleware');
 
 // ── Public routes ──────────────────────────────────────────────────────────────
 router.get('/tags', gigController.getAllTags);
+router.get('/showcase', optionalProtect, gigController.getShowcaseData);
 router.get('/', gigController.getAllGigs);
 router.get('/slug/:slug', optionalProtect, gigController.getGigBySlug);
 router.get('/:gigId/similar', optionalProtect, gigController.getSimilarGigs);
