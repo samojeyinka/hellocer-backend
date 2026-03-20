@@ -2,6 +2,8 @@ const Review = require('../models/review.model');
 const Order = require('../models/order.model');
 const Gig = require('../models/gig.model');
 const NotificationService = require('../services/notification.service');
+const EmailService = require('../services/email.service');
+const User = require('../models/user.model');
 
 exports.createReview = async (req, res) => {
   try {
@@ -61,6 +63,28 @@ exports.createReview = async (req, res) => {
       relatedId: review._id,
       relatedModel: 'Review'
     });
+
+    // Send Emails to Gig Creator and Hellocians
+    const participants = await User.find({ 
+      _id: { $in: [order.gigCreatorId, ...order.hellocians] } 
+    });
+
+    const reviewer = await User.findById(userId);
+
+    for (const participant of participants) {
+      if (participant.email) {
+        await EmailService.sendReviewReceivedEmail(
+          participant.email,
+          participant.firstName,
+          {
+            orderTitle: order.title,
+            rating,
+            comment,
+            reviewerName: `${reviewer.firstName} ${reviewer.lastName}`
+          }
+        );
+      }
+    }
 
     res.status(201).json({ success: true, review });
   } catch (error) {

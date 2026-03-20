@@ -850,6 +850,46 @@ class EmailService {
       throw error; // Throw so controller can catch it
     }
   }
+
+  async sendReviewReceivedEmail(email, firstName, reviewData) {
+    try {
+      const { orderTitle, rating, comment, reviewerName } = reviewData;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `New ${rating}-Star Review for ${orderTitle}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">New Review Received</h2>
+            <p>Hi ${firstName},</p>
+            <p>You have received a new review from <strong>${reviewerName}</strong> for the project: <strong>"${orderTitle}"</strong>.</p>
+            
+            <div style="background-color: #f8fbff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e1efff;">
+              <p style="margin: 0 0 10px 0;"><strong>Rating:</strong> ${rating} / 5 Stars</p>
+              <p style="margin: 0; font-style: italic;">"${comment}"</p>
+            </div>
+            
+            <p>You can view this review and respond to it via your gig details page.</p>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- REVIEW RECEIVED EMAIL DRY RUN ---', { to: email, rating });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send review received email:', error);
+    }
+  }
 }
 
 module.exports = new EmailService();
