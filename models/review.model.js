@@ -22,6 +22,10 @@ const ReviewSchema = new mongoose.Schema({
     min: 1,
     max: 5
   },
+  deliverySpeed: {
+    type: String,
+    enum: ['fast', 'extra-fast', 'express']
+  },
   comment: {
     type: String,
     required: true

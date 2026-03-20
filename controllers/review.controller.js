@@ -7,7 +7,7 @@ const User = require('../models/user.model');
 
 exports.createReview = async (req, res) => {
   try {
-    const { orderId, gigId, rating, comment } = req.body;
+    const { orderId, gigId, rating, comment, deliverySpeed } = req.body;
     const userId = req.user._id;
 
     // Check if order exists and belongs to user
@@ -41,7 +41,8 @@ exports.createReview = async (req, res) => {
       gigId: finalGigId,
       userId,
       rating,
-      comment
+      comment,
+      deliverySpeed
     });
 
     // Update gig ratings

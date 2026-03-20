@@ -2,6 +2,8 @@ const User = require('../models/user.model');
 const Order = require('../models/order.model');
 const Gig = require('../models/gig.model');
 const Review = require('../models/review.model');
+const Chat = require('../models/chat.model');
+const Message = require('../models/message.model');
 const EmailService = require('../services/email.service');
 const NotificationService = require('../services/notification.service');
 
@@ -11,7 +13,8 @@ exports.updateProfile = async (req, res) => {
     const updateData = {};
     const allowedFields = [
       'firstName', 'lastName', 'profilePicture', 
-      'address', 'city', 'postalCode', 'country', 'timeZone', 'socials'
+      'address', 'city', 'postalCode', 'country', 'timeZone', 'socials',
+      'bio', 'skills'
     ];
 
     allowedFields.forEach(field => {
@@ -520,5 +523,105 @@ exports.getTopHellocians = async (req, res) => {
   } catch (error) {
     console.error('Get top hellocians error:', error);
     res.status(500).json({ error: 'Failed to fetch top hellocians' });
+  }
+};
+
+exports.getHellocianMetrics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // 1. Inbox Response Rate & Time
+    const chats = await Chat.find({ participants: userId });
+    
+    let totalDirectChats = 0;
+    let directChatsWithReply = 0;
+    let totalReplyTimeMs = 0;
+    let replyCount = 0;
+
+    let totalOrderChats = 0;
+    let orderChatsWithReply = 0;
+
+    for (const chat of chats) {
+      const messages = await Message.find({ chatId: chat._id }).sort({ createdAt: 1 });
+      
+      if (chat.chatType === 'direct') {
+        totalDirectChats++;
+        let hasRepliedAtLeastOnce = false;
+        
+        for (let i = 0; i < messages.length; i++) {
+          const msg = messages[i];
+          // If message is from someone else
+          if (msg.senderId.toString() !== userId.toString()) {
+            // Find next message from Hellocian
+            const nextHellocianMsg = messages.slice(i + 1).find(m => m.senderId.toString() === userId.toString());
+            if (nextHellocianMsg) {
+              const diffMs = nextHellocianMsg.createdAt - msg.createdAt;
+              totalReplyTimeMs += diffMs;
+              replyCount++;
+              if (diffMs <= 60 * 60 * 1000) { // Replied within 1 hour
+                hasRepliedAtLeastOnce = true;
+              }
+            }
+          }
+        }
+        if (hasRepliedAtLeastOnce) directChatsWithReply++;
+      } else if (chat.chatType === 'order') {
+        totalOrderChats++;
+        const hellocianReplied = messages.some(m => m.senderId.toString() === userId.toString());
+        if (hellocianReplied) orderChatsWithReply++;
+      }
+    }
+
+    const inboxResponseRate = Math.round(
+      ((directChatsWithReply + orderChatsWithReply) / (totalDirectChats + totalOrderChats || 1)) * 100
+    );
+    const avgResponseTimeHrs = replyCount > 0 ? (totalReplyTimeMs / replyCount / (1000 * 60 * 60)).toFixed(1) : 0;
+
+    // 2. Order Response Rate (Orders vs Gigs ratio)
+    const gigsCount = await Gig.countDocuments({ hellocians: userId, deletedAt: null });
+    const ordersCount = await Order.countDocuments({ hellocians: userId });
+    const orderResponseRate = Math.round((ordersCount / (gigsCount || 1)) * 100);
+
+    // 3. Delivered on Time
+    const userGigs = await Gig.find({ hellocians: userId }).distinct('_id');
+    const reviews = await Review.find({ gigId: { $in: userGigs } });
+    const onTimeReviews = reviews.filter(r => ['fast', 'extra-fast', 'express'].includes(r.deliverySpeed));
+    const deliveredOnTimeRate = Math.round((onTimeReviews.length / (reviews.length || 1)) * 100);
+
+    // 4. Order Completion
+    const activeOrders = await Order.countDocuments({ hellocians: userId });
+    const completedOrders = await Order.countDocuments({ hellocians: userId, status: 'completed' });
+    const orderCompletionRate = Math.round((completedOrders / (activeOrders || 1)) * 100);
+
+    // 5. Total Earnings (Completed orders + PAID additional payments)
+    const userOrders = await Order.find({ hellocians: userId, status: 'completed' });
+    let totalEarnings = 0;
+    for (const order of userOrders) {
+      totalEarnings += order.price;
+      if (order.additionalPayments) {
+        order.additionalPayments.forEach(p => {
+          if (p.status === 'paid') totalEarnings += p.amount;
+        });
+      }
+    }
+
+    // 6. Average Rating
+    const avgRating = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 0;
+
+    res.json({
+      success: true,
+      metrics: {
+        inbox: Math.min(inboxResponseRate, 100),
+        responseTime: parseFloat(avgResponseTimeHrs),
+        order: Math.min(orderResponseRate, 100),
+        delivered: Math.min(deliveredOnTimeRate, 100),
+        completion: Math.min(orderCompletionRate, 100),
+        totalEarnings,
+        avgRating: parseFloat(avgRating)
+      }
+    });
+  } catch (error) {
+    console.error('Get hellocian metrics error:', error);
+    res.status(500).json({ error: 'Failed to calculate metrics' });
   }
 };
