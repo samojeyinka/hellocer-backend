@@ -26,7 +26,7 @@ const PaymentSchema = new mongoose.Schema({
   },
   pricingPackage: {
     type: String,
-    enum: ["basic", "standard", "advanced", "pro", "premium"],
+    enum: ["basic", "standard", "advanced", "pro", "premium", "additional"],
     required: true
   },
   status: {

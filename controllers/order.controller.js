@@ -587,3 +587,56 @@ exports.remindReview = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+exports.requestAdditionalPayment = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { amount, description } = req.body;
+    
+    if (!amount || !description) {
+      return res.status(400).json({ error: 'Amount and description are required' });
+    }
+    
+    const order = await Order.findById(orderId).populate('clientId');
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const newAdditionalPayment = {
+      amount,
+      description,
+      status: 'pending'
+    };
+    
+    order.additionalPayments.push(newAdditionalPayment);
+    await order.save();
+    
+    const paymentIndex = order.additionalPayments.length - 1;
+    
+    if (order.clientId?.email) {
+      await EmailService.sendAdditionalPaymentRequestEmail(
+        order.clientId.email,
+        order.clientId.firstName,
+        {
+          orderId: order._id.toString(),
+          title: order.title,
+          amount,
+          description,
+          paymentIndex
+        }
+      );
+    }
+    
+    // Also send socket notification to the client
+    SocketService.notifyOrderUpdate(orderId, { additionalPayments: order.additionalPayments }, [order.clientId._id]);
+    
+    // Notify the client via NotificationService
+    // disabled per user request
+    // await NotificationService.createNotification({ ... });
+    
+    res.json({ success: true, message: 'Additional payment requested successfully', order });
+  } catch (error) {
+    console.error('Request additional payment error:', error);
+    res.status(500).json({ error: 'Failed to request additional payment' });
+  }
+};

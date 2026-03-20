@@ -890,6 +890,133 @@ class EmailService {
       console.error('Failed to send review received email:', error);
     }
   }
+  async sendAdditionalPaymentSuccessEmail(email, firstName, data) {
+    try {
+      const { orderId, title, amount } = data;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `Payment Receipt: Additional Payment for "${title}"`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">Payment Successful</h2>
+            <p>Hi ${firstName},</p>
+            <p>Your additional payment for the project <strong>"${title}"</strong> has been successfully processed.</p>
+            
+            <div style="background-color: #f8fbff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e1efff;">
+              <p style="margin: 0 0 10px 0;"><strong>Amount Paid:</strong> $${amount}</p>
+              <p style="margin: 0;"><strong>Order ID:</strong> #${orderId.substring(orderId.length - 6).toUpperCase()}</p>
+            </div>
+            
+            <p>Thank you for your prompt payment.</p>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ADDITIONAL PAYMENT SUCCESS EMAIL DRY RUN ---', { to: email, title, amount });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send additional payment success email:', error);
+    }
+  }
+
+  async sendAdditionalPaymentTeamNotification(email, firstName, data) {
+    try {
+      const { orderId, title, amount } = data;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `New Payment Received: Additional Payment for "${title}"`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">New Payment Received</h2>
+            <p>Hi ${firstName},</p>
+            <p>The client has successfully completed the requested additional payment for the project <strong>"${title}"</strong>.</p>
+            
+            <div style="background-color: #f8fbff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e1efff;">
+              <p style="margin: 0 0 10px 0;"><strong>Amount Paid:</strong> $${amount}</p>
+              <p style="margin: 0;"><strong>Order ID:</strong> #${orderId.substring(orderId.length - 6).toUpperCase()}</p>
+            </div>
+            
+            <p>The project flow can now proceed as discussed.</p>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ADDITIONAL PAYMENT TEAM NOTIFICATION DRY RUN ---', { to: email, title, amount });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send additional payment team notification email:', error);
+    }
+  }
+
+  async sendAdditionalPaymentRequestEmail(email, firstName, data) {
+    try {
+      const { orderId, title, amount, description, paymentIndex } = data;
+      const paymentLink = `${process.env.FRONTEND_URL}/payment/order/${orderId}/${paymentIndex}`;
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: email,
+        subject: `Payment Request: Action Required for Order "${title}"`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">Additional Payment Requested</h2>
+            <p>Hi ${firstName},</p>
+            <p>An additional payment has been requested for your project <strong>"${title}"</strong>.</p>
+            
+            <div style="background-color: #f8fbff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e1efff;">
+              <p style="margin: 0 0 10px 0;"><strong>Amount Due:</strong> $${amount}</p>
+              <p style="margin: 0;"><strong>Reason:</strong> ${description}</p>
+            </div>
+            
+            <p>Please click the button below to complete this payment:</p>
+            
+            <a href="${paymentLink}" 
+               style="background-color: #174568; color: white; padding: 14px 25px; 
+                      text-decoration: none; display: inline-block; border-radius: 4px; font-weight: bold; margin: 20px 0;">
+              Pay Now
+            </a>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              If you have any questions, you can discuss this with the team via your project chat.<br/><br/>
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- ADDITIONAL PAYMENT EMAIL DRY RUN ---', { to: email, amount });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send additional payment request email:', error);
+    }
+  }
 }
 
 module.exports = new EmailService();

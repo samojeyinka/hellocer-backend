@@ -59,7 +59,13 @@ const OrderSchema = new mongoose.Schema({
   isReviewed: {
     type: Boolean,
     default: false
-  }
+  },
+  additionalPayments: [{
+    amount: { type: Number, required: true },
+    description: { type: String, required: true },
+    status: { type: String, enum: ["pending", "paid"], default: "pending" },
+    payment_intent: { type: String }
+  }]
 }, {
   timestamps: true
 });
