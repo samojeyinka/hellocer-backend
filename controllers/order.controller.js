@@ -70,6 +70,122 @@ exports.getUserOrders = async (req, res) => {
   }
 };
 
+exports.getClientActivityStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // We will fetch all orders for the client created in the current year, and bin them in memory.
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    const orders = await Order.find({
+      clientId: userId,
+      createdAt: { $gte: startOfYear }
+    }).select('createdAt price status');
+
+    // Helper to get start and end dates of current periods
+    const endOfWeek = new Date();
+    const startOfWeek = new Date();
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Bin arrays
+    const weekData = [
+      { day: 'S', value: 0, projects: 0, label: 'Sunday', details: '0 projects, $0 spent' },
+      { day: 'M', value: 0, projects: 0, label: 'Monday', details: '0 projects, $0 spent' },
+      { day: 'T', value: 0, projects: 0, label: 'Tuesday', details: '0 projects, $0 spent' },
+      { day: 'W', value: 0, projects: 0, label: 'Wednesday', details: '0 projects, $0 spent' },
+      { day: 'T', value: 0, projects: 0, label: 'Thursday', details: '0 projects, $0 spent' },
+      { day: 'F', value: 0, projects: 0, label: 'Friday', details: '0 projects, $0 spent' },
+      { day: 'S', value: 0, projects: 0, label: 'Saturday', details: '0 projects, $0 spent' }
+    ];
+
+    const monthData = [
+      { day: 'W1', value: 0, projects: 0, label: 'Week 1', details: '0 projects, $0 spent' },
+      { day: 'W2', value: 0, projects: 0, label: 'Week 2', details: '0 projects, $0 spent' },
+      { day: 'W3', value: 0, projects: 0, label: 'Week 3', details: '0 projects, $0 spent' },
+      { day: 'W4', value: 0, projects: 0, label: 'Week 4', details: '0 projects, $0 spent' }
+    ];
+
+    const quarterMonths = [];
+    const currentQtrStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    for(let i = 0; i < 3; i++) {
+        quarterMonths.push({ 
+          day: monthNames[currentQtrStartMonth + i], 
+          value: 0, projects: 0, label: monthNames[currentQtrStartMonth + i], details: '0 projects, $0 spent',
+          monthIndex: currentQtrStartMonth + i
+        });
+    }
+
+    const yearData = [
+      { day: 'Q1', value: 0, projects: 0, label: 'Quarter 1', details: '0 projects, $0 spent' },
+      { day: 'Q2', value: 0, projects: 0, label: 'Quarter 2', details: '0 projects, $0 spent' },
+      { day: 'Q3', value: 0, projects: 0, label: 'Quarter 3', details: '0 projects, $0 spent' },
+      { day: 'Q4', value: 0, projects: 0, label: 'Quarter 4', details: '0 projects, $0 spent' }
+    ];
+
+    orders.forEach(order => {
+      const date = new Date(order.createdAt);
+      const amount = parseFloat(order.price) || 0;
+
+      // This Week
+      if (date >= startOfWeek) {
+        let dIndex = date.getDay();
+        weekData[dIndex].value += amount;
+        weekData[dIndex].projects += 1;
+        weekData[dIndex].details = `${weekData[dIndex].projects} projects, $${weekData[dIndex].value.toFixed(2)} spent`;
+      }
+
+      // This Month
+      if (date >= startOfMonth) {
+        // week 1 is 1-7, week 2 is 8-14, week 3 is 15-21, week 4 is 22+
+        let dom = date.getDate();
+        let wIndex = 0;
+        if (dom > 7) wIndex = 1;
+        if (dom > 14) wIndex = 2;
+        if (dom > 21) wIndex = 3;
+        monthData[wIndex].value += amount;
+        monthData[wIndex].projects += 1;
+        monthData[wIndex].details = `${monthData[wIndex].projects} projects, $${monthData[wIndex].value.toFixed(2)} spent`;
+      }
+
+      // This Quarter
+      const mIndex = date.getMonth();
+      if (mIndex >= currentQtrStartMonth && mIndex < currentQtrStartMonth + 3) {
+        let qmIndex = mIndex - currentQtrStartMonth;
+        quarterMonths[qmIndex].value += amount;
+        quarterMonths[qmIndex].projects += 1;
+        quarterMonths[qmIndex].details = `${quarterMonths[qmIndex].projects} projects, $${quarterMonths[qmIndex].value.toFixed(2)} spent`;
+      }
+
+      // This Year
+      let qIndex = Math.floor(mIndex / 3);
+      yearData[qIndex].value += amount;
+      yearData[qIndex].projects += 1;
+      yearData[qIndex].details = `${yearData[qIndex].projects} projects, $${yearData[qIndex].value.toFixed(2)} spent`;
+    });
+
+    res.json({
+      success: true,
+      stats: {
+        'This Week': weekData,
+        'This Month': monthData,
+        'This Quarter': quarterMonths.map(q => ({
+            day: q.day, value: q.value, projects: q.projects, label: q.label, details: q.details
+        })),
+        'This Year': yearData
+      }
+    });
+
+  } catch (error) {
+    console.error('Get client activity stats error:', error);
+    res.status(500).json({ error: 'Failed to get client activity stats' });
+  }
+};
+
 // Admin function to get ALL orders
 exports.getAllOrders = async (req, res) => {
   try {

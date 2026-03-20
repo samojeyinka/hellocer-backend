@@ -11,13 +11,17 @@ const {
   extendOrderDeliveryTime,
   updateOrderHellocians,
   remindReview,
-  requestAdditionalPayment
+  requestAdditionalPayment,
+  getClientActivityStats
 } = require('../controllers/order.controller');
 
 router.use(protect, checkActivation);
 
 // User's own orders
 router.get('/', getUserOrders);
+
+// Client Activity Stats
+router.get('/client-activity-stats', getClientActivityStats);
 
 // Get specific order
 router.get('/:orderId', getOrderById);
