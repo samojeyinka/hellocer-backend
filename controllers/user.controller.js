@@ -1,5 +1,7 @@
 const User = require('../models/user.model');
 const Order = require('../models/order.model');
+const Gig = require('../models/gig.model');
+const Review = require('../models/review.model');
 const EmailService = require('../services/email.service');
 const NotificationService = require('../services/notification.service');
 
@@ -464,5 +466,59 @@ exports.getBookmarkedIds = async (req, res) => {
   } catch (error) {
     console.error('Get bookmarked ids error:', error);
     res.status(500).json({ error: 'Failed to get bookmarked ids' });
+  }
+};
+
+exports.getTopHellocians = async (req, res) => {
+  try {
+    const hellocians = await User.find({
+      role: 'hellocian',
+      isActivated: true,
+      directMessages: true
+    }).select('firstName lastName profilePicture skills');
+
+    const results = await Promise.all(hellocians.map(async (h) => {
+      // Completed tasks
+      const completedTasks = await Order.countDocuments({
+        hellocians: h._id,
+        status: 'completed'
+      });
+
+      // Gigs attached to
+      const attachedGigs = await Gig.find({ hellocians: h._id }).select('_id');
+      const gigIds = attachedGigs.map(g => g._id);
+
+      // Reviews for these gigs
+      let rating = 0;
+      let reviewsCount = 0;
+
+      if (gigIds.length > 0) {
+        const reviews = await Review.find({ gigId: { $in: gigIds } });
+        reviewsCount = reviews.length;
+        if (reviewsCount > 0) {
+          const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+          rating = parseFloat((sum / reviewsCount).toFixed(1));
+        }
+      }
+
+      return {
+        _id: h._id,
+        name: `${h.firstName} ${h.lastName}`,
+        role: h.skills && h.skills.length > 0 ? h.skills[0] : 'Professional',
+        skills: h.skills,
+        avatar: h.profilePicture,
+        tasks: completedTasks,
+        rating: rating || 5.0,
+        reviews: reviewsCount,
+        verified: true
+      };
+    }));
+
+    results.sort((a, b) => b.rating - a.rating || b.tasks - a.tasks);
+
+    res.json({ success: true, hellocians: results });
+  } catch (error) {
+    console.error('Get top hellocians error:', error);
+    res.status(500).json({ error: 'Failed to fetch top hellocians' });
   }
 };

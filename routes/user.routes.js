@@ -27,6 +27,8 @@ router.get('/bookmarks', userController.getSavedGigs);
 router.get('/bookmarks/ids', userController.getBookmarkedIds);
 router.post('/bookmarks/:gigId', userController.toggleBookmark);
 
+router.get('/top-hellocians', userController.getTopHellocians);
+
 router.get('/:userId', userController.getUserById);
 
 // Admin/Super-Admin routes
