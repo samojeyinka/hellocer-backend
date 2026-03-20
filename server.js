@@ -24,6 +24,7 @@ const adminRoutes = require('./routes/admin.routes');
 const clientRoutes = require('./routes/client.routes');
 const quoteRoutes = require('./routes/quote.routes');
 const adminStatsRoutes = require('./routes/admin.stats.routes');
+const contactRoutes = require('./routes/contact.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -63,6 +64,7 @@ app.use('/api/admins', adminRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/admin-stats', adminStatsRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

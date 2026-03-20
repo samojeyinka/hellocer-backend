@@ -3,6 +3,7 @@ const Gig = require('../models/gig.model');
 const { createOrder } = require('./order.controller');
 const Payment = require('../models/payment.model');
 const Order = require('../models/order.model');
+const NotificationService = require('../services/notification.service');
 
 exports.createPayment = async (req, res) => {
   try {
@@ -119,6 +120,38 @@ exports.executePayment = async (req, res) => {
       });
 
       await PaymentService.updatePaymentStatus(result.paymentIntent, 'approved', order._id);
+
+      // Notify Client and Team about new order
+      const clientNotification = {
+        userId: req.user._id,
+        type: 'order_created',
+        title: 'Order Placed Successfully',
+        message: `Your order for "${gig.title}" has been placed.`,
+        relatedId: order._id,
+        relatedModel: 'Order'
+      };
+
+      const teamNotifications = [
+        {
+          userId: gig.creator._id,
+          type: 'order_created',
+          title: 'New Order Received',
+          message: `A new order has been placed for your gig "${gig.title}".`,
+          relatedId: order._id,
+          relatedModel: 'Order'
+        },
+        ...gig.hellocians.map(h => ({
+          userId: h._id,
+          type: 'order_created',
+          title: 'New Order Assigned',
+          message: `You have been assigned to a new order: "${gig.title}".`,
+          relatedId: order._id,
+          relatedModel: 'Order'
+        }))
+      ];
+
+      await NotificationService.createNotification(clientNotification);
+      await NotificationService.createBulkNotifications(teamNotifications);
 
       res.json({
         success: true,
@@ -288,7 +321,41 @@ exports.executeAdditionalPayment = async (req, res) => {
       // We will require it
       const SocketService = require('../services/socket.service');
       const EmailService = require('../services/email.service');
-      SocketService.notifyOrderUpdate(order._id.toString(), { additionalPayments: order.additionalPayments }, [order.clientId._id.toString(), order.gigCreatorId.toString(), ...order.hellocians.map(h => h.toString())]);
+      const NotificationService = require('../services/notification.service');
+      
+      SocketService.notifyOrderUpdate(order._id.toString(), { additionalPayments: order.additionalPayments }, [order.clientId?._id?.toString() || order.clientId.toString(), order.gigCreatorId._id.toString(), ...order.hellocians.map(h => h._id.toString())]);
+
+      // Persistent Notifications
+      const clientNotif = {
+        userId: req.user._id,
+        type: 'payment_received',
+        title: 'Payment Successful',
+        message: `Your additional payment of $${result.amount} for "${order.title}" was successful.`,
+        relatedId: order._id,
+        relatedModel: 'Order'
+      };
+
+      const teamNotifs = [
+        {
+          userId: order.gigCreatorId._id,
+          type: 'payment_received',
+          title: 'Additional Payment Received',
+          message: `An additional payment of $${result.amount} has been received for "${order.title}".`,
+          relatedId: order._id,
+          relatedModel: 'Order'
+        },
+        ...order.hellocians.map(h => ({
+          userId: h._id,
+          type: 'payment_received',
+          title: 'Additional Payment Received',
+          message: `An additional payment of $${result.amount} has been received for "${order.title}".`,
+          relatedId: order._id,
+          relatedModel: 'Order'
+        }))
+      ];
+
+      await NotificationService.createNotification(clientNotif);
+      await NotificationService.createBulkNotifications(teamNotifs);
 
       if (req.user.email) {
         await EmailService.sendAdditionalPaymentSuccessEmail(

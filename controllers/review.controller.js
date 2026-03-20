@@ -55,15 +55,27 @@ exports.createReview = async (req, res) => {
     order.isReviewed = true;
     await order.save();
 
-    // Notify gig creator
-    await NotificationService.createNotification({
-      userId: order.gigCreatorId,
-      type: 'review_received',
-      title: 'New Review',
-      message: `You received a ${rating}-star review`,
-      relatedId: review._id,
-      relatedModel: 'Review'
-    });
+    // Notify team about new review
+    const teamNotifications = [
+      {
+        userId: order.gigCreatorId,
+        type: 'review_received',
+        title: 'New Review Received',
+        message: `You received a ${rating}-star review for "${order.title}".`,
+        relatedId: review._id,
+        relatedModel: 'Review'
+      },
+      ...order.hellocians.map(hId => ({
+        userId: hId,
+        type: 'review_received',
+        title: 'New Review Received',
+        message: `Your team received a ${rating}-star review for "${order.title}".`,
+        relatedId: review._id,
+        relatedModel: 'Review'
+      }))
+    ];
+
+    await NotificationService.createBulkNotifications(teamNotifications);
 
     // Send Emails to Gig Creator and Hellocians
     const participants = await User.find({ 

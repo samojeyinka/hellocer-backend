@@ -3,6 +3,7 @@ const User = require('../models/user.model');
 const { generateToken, generateRefreshToken } = require('../utils/generateToken');
 const { generateUsername } = require('../utils/generateCode');
 const EmailService = require('../services/email.service');
+const NotificationService = require('../services/notification.service');
 
 /**
  * @desc    Admin/Super-Admin creates a Hellocian account
@@ -228,6 +229,16 @@ exports.toggleBlockHellocian = async (req, res) => {
         await EmailService.sendAccountUnblockedEmail(hellocian.email, displayName);
       }
     }
+
+    // Add persistent notification
+    await NotificationService.createNotification({
+      userId: hellocian._id,
+      type: hellocian.isBlocked ? 'account_blocked' : 'account_unblocked',
+      title: hellocian.isBlocked ? 'Account Blocked' : 'Account Unblocked',
+      message: hellocian.isBlocked 
+        ? `Your account has been blocked by an administrator${reason ? `: ${reason}` : ''}.` 
+        : 'Your account has been unblocked by an administrator.',
+    });
     
     await hellocian.save({ validateBeforeSave: false });
     

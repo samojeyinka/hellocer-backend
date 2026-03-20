@@ -1,6 +1,7 @@
 const User = require('../models/user.model');
 const Order = require('../models/order.model');
 const EmailService = require('../services/email.service');
+const NotificationService = require('../services/notification.service');
 
 /**
  * @desc    Get all Clients (role: user)
@@ -90,6 +91,16 @@ exports.toggleBlockClient = async (req, res) => {
         await EmailService.sendAccountUnblockedEmail(client.email, displayName);
       }
     }
+
+    // Add persistent notification
+    await NotificationService.createNotification({
+      userId: client._id,
+      type: client.isBlocked ? 'account_blocked' : 'account_unblocked',
+      title: client.isBlocked ? 'Account Blocked' : 'Account Unblocked',
+      message: client.isBlocked 
+        ? `Your account has been blocked by an administrator${reason ? `: ${reason}` : ''}.` 
+        : 'Your account has been unblocked by an administrator.',
+    });
     
     await client.save({ validateBeforeSave: false });
     

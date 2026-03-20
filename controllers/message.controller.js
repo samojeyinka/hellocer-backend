@@ -40,9 +40,25 @@ exports.sendMessage = async (req, res) => {
     const populatedMessage = await Message.findById(message._id)
       .populate('senderId', 'firstName lastName profilePicture role');
 
-    // Emit real-time notification
+    // Emit real-time socket notification
     const participantIds = chat.participants.map(p => p._id);
     SocketService.notifyNewMessage(chatId, populatedMessage, participantIds);
+
+    // Create persistent notifications for other participants
+    const notifications = chat.participants
+      .filter(p => p._id.toString() !== senderId.toString())
+      .map(p => ({
+        userId: p._id,
+        type: 'message_received',
+        title: 'New Message',
+        message: `You have a new message from ${req.user.firstName} in "${chat.orderId ? 'Order Chat' : 'Direct Message'}"`,
+        relatedId: message._id,
+        relatedModel: 'Message'
+      }));
+
+    if (notifications.length > 0) {
+      await NotificationService.createBulkNotifications(notifications);
+    }
 
     // Send email notifications to offline participants
     const otherParticipants = chat.participants.filter(

@@ -1017,6 +1017,46 @@ class EmailService {
       console.error('Failed to send additional payment request email:', error);
     }
   }
+
+  async sendContactFormNotification(adminEmail, adminName, contactData) {
+    try {
+      const { fullName, email, message } = contactData;
+      
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        to: adminEmail,
+        replyTo: email,
+        subject: `[Contact Us] New message from ${fullName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px; border-radius: 10px;">
+            <h2 style="color: #174568;">New Contact Us Submission</h2>
+            <p>Hi ${adminName},</p>
+            <p>You have received a new message from the contact form:</p>
+            
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #174568;">
+              <p style="margin: 0; color: #333;"><strong>From:</strong> ${fullName} (${email})</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 10px 0;">
+              <p style="margin: 0; color: #333; white-space: pre-wrap;">${message}</p>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #888;">
+              Best regards,<br/>
+              The Hellocer Team
+            </p>
+          </div>
+        `
+      };
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.log('--- CONTACT FORM EMAIL DRY RUN ---', { to: adminEmail, from: email });
+        return { id: 'dry_run' };
+      }
+
+      return await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send contact form notification email:', error);
+    }
+  }
 }
 
 module.exports = new EmailService();
