@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const cors = require('cors'); 
+const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const morgan = require('morgan'); 
 const connectDB = require('./config/db');
@@ -29,9 +30,6 @@ const contactRoutes = require('./routes/contact.routes');
 const app = express();
 const server = http.createServer(app);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 // Initialize Socket.IO
 const io = initializeSocket(server);
 
@@ -40,14 +38,17 @@ connectDB();
 
 // Middleware
 app.use(helmet());
+app.use(cookieParser());
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = [
+    const allowed = [
       process.env.FRONTEND_URL,
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://hellocer.onrender.com'
     ].filter(Boolean);
     
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin || allowed.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -55,9 +56,9 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(morgan('dev'));
 
 // API Routes
 app.use('/api/auth', authRoutes);
