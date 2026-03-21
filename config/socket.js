@@ -8,7 +8,18 @@ const connectedUsers = new Map(); // userId -> socketId
 const initializeSocket = (server) => {
   io = socketIO(server, {
     cors: {
-      origin: process.env.FRONTEND_URL,
+      origin: (origin, callback) => {
+        const allowedOrigins = [
+          process.env.FRONTEND_URL,
+          'http://localhost:3000'
+        ].filter(Boolean);
+        
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       methods: ["GET", "POST"],
       credentials: true
     }
