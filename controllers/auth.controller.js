@@ -74,7 +74,7 @@ exports.activateAccount = async (req, res) => {
     user.activationCodeExpires = undefined;
     await user.save();
 
-    // await EmailService.sendWelcomeEmail(user.email, user.firstName);
+    await EmailService.sendWelcomeEmail(user.email, user.firstName);
 
     res.json({
       success: true,
@@ -107,7 +107,7 @@ exports.resendActivationCode = async (req, res) => {
     user.activationCodeExpires = activationCodeExpires;
     await user.save();
 
-    // await EmailService.sendActivationEmail(email, user.firstName, activationCode);
+    await EmailService.sendActivationEmail(email, user.firstName, activationCode);
 
     console.log(hashedActivationCode);
     
@@ -181,7 +181,7 @@ exports.createAdmin = async (req, res) => {
       isActivated: false
     });
 
-    // Save skipping validation because firstName/lastName are required but not yet provided
+
     await newAdmin.save({ validateBeforeSave: false });
 
     await EmailService.sendAdminInvitation(email);

@@ -4,7 +4,7 @@ const Gig = require('./models/gig.model');
 
 async function testAggregation() {
   try {
-    await mongoose.connect('mongodb://localhost:27017/hellocer'); // Adjust DB name if needed
+    await mongoose.connect('mongodb://localhost:27017/hellocer'); 
     console.log('Connected to DB');
 
     const categories = await Category.aggregate([

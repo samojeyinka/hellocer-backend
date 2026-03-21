@@ -1,19 +1,12 @@
-/**
- * Setup Admin Management controller for super-admins
- */
 const User = require('../models/user.model');
 const EmailService = require('../services/email.service');
 
-/**
- * @desc    Get all admins (excludes the requesting super-admin to prevent self-deletion)
- * @route   GET /api/admins/manage
- * @access  Private (super-admin only)
- */
+
 exports.getAdmins = async (req, res) => {
   try {
     const adminQuery = { 
       role: { $in: ['admin', 'super-admin'] },
-      _id: { $ne: req.user._id }, // Don't list the current user
+      _id: { $ne: req.user._id }, 
       deletedAt: null
     };
 
@@ -32,16 +25,12 @@ exports.getAdmins = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get all trashed admins
- * @route   GET /api/admins/manage/trash
- * @access  Private (super-admin only)
- */
+
 exports.getTrashedAdmins = async (req, res) => {
   try {
     const admins = await User.find({ 
       role: { $in: ['admin', 'super-admin'] }, 
-      _id: { $ne: req.user._id }, // Don't let someone see themselves in trash either
+      _id: { $ne: req.user._id }, 
       deletedAt: { $ne: null } 
     })
       .select('-password -refreshToken')
@@ -58,11 +47,7 @@ exports.getTrashedAdmins = async (req, res) => {
   }
 };
 
-/**
- * @desc    Toggle block status of an Admin
- * @route   PATCH /api/admins/manage/:id/toggle-block
- * @access  Private (super-admin only)
- */
+
 exports.toggleBlockAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -109,11 +94,7 @@ exports.toggleBlockAdmin = async (req, res) => {
   }
 };
 
-/**
- * @desc    Soft delete an Admin
- * @route   DELETE /api/admins/manage/:id
- * @access  Private (super-admin only)
- */
+
 exports.deleteAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -141,11 +122,7 @@ exports.deleteAdmin = async (req, res) => {
   }
 };
 
-/**
- * @desc    Restore a soft-deleted Admin
- * @route   PATCH /api/admins/manage/:id/restore
- * @access  Private (super-admin only)
- */
+
 exports.restoreAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -173,11 +150,7 @@ exports.restoreAdmin = async (req, res) => {
   }
 };
 
-/**
- * @desc    Permanently delete an Admin
- * @route   DELETE /api/admins/manage/:id/hard
- * @access  Private (super-admin only)
- */
+
 exports.hardDeleteAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -201,11 +174,7 @@ exports.hardDeleteAdmin = async (req, res) => {
   }
 };
 
-/**
- * @desc    Bulk action (soft or hard delete) Admins
- * @route   POST /api/admins/manage/bulk-delete
- * @access  Private (super-admin only)
- */
+
 exports.bulkDeleteAdmins = async (req, res) => {
   try {
     const { ids, action } = req.body;

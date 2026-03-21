@@ -4,7 +4,7 @@ const clientController = require('../controllers/client.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { restrictTo } = require('../middleware/roleCheck.middleware');
 
-// All routes are protected and restricted to admin/super-admin
+
 router.use(protect);
 router.use(restrictTo('admin', 'super-admin'));
 

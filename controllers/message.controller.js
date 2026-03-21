@@ -78,23 +78,7 @@ exports.sendMessage = async (req, res) => {
       }
     }
 
-    /* 
-    // Create notification for other participants
-    const otherParticipants = chat.participants.filter(
-      p => p._id.toString() !== senderId.toString()
-    );
-
-    for (const participant of otherParticipants) {
-      await NotificationService.createNotification({
-        userId: participant._id,
-        type: 'message_received',
-        title: 'New Message',
-        message: `${req.user.firstName} ${req.user.lastName} sent you a message`,
-        relatedId: chatId,
-        relatedModel: 'Chat'
-      });
-    }
-    */
+   
 
     res.status(201).json({ success: true, message: populatedMessage });
   } catch (error) {

@@ -129,7 +129,7 @@ GigSchema.pre('save', function(next) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, ''); // Remove leading/trailing hyphens
+      .replace(/(^-|-$)+/g, ''); 
   }
   next();
 });

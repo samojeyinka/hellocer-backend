@@ -5,11 +5,7 @@ const { generateUsername } = require('../utils/generateCode');
 const EmailService = require('../services/email.service');
 const NotificationService = require('../services/notification.service');
 
-/**
- * @desc    Admin/Super-Admin creates a Hellocian account
- * @route   POST /api/hellocians/create
- * @access  Private (admin, super-admin)
- */
+
 exports.createHellocian = async (req, res) => {
   try {
     const { firstName, lastName, email, phone, bio, skills = [], keywords = [] } = req.body;
@@ -152,11 +148,7 @@ exports.setupPassword = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get all Hellocian accounts
- * @route   GET /api/hellocians
- * @access  Private (admin, super-admin)
- */
+
 exports.getHellocians = async (req, res) => {
   try {
     const hellocians = await User.find({ role: 'hellocian', deletedAt: null })
@@ -197,11 +189,7 @@ exports.getHellocians = async (req, res) => {
   }
 };
 
-/**
- * @desc    Toggle block status of a Hellocian
- * @route   PATCH /api/hellocians/:id/toggle-block
- * @access  Private (admin, super-admin)
- */
+
 exports.toggleBlockHellocian = async (req, res) => {
   try {
     const { id } = req.params;
@@ -253,11 +241,7 @@ exports.toggleBlockHellocian = async (req, res) => {
   }
 };
 
-/**
- * @desc    Soft delete a Hellocian
- * @route   DELETE /api/hellocians/:id
- * @access  Private (admin, super-admin)
- */
+
 exports.deleteHellocian = async (req, res) => {
   try {
     const { id } = req.params;
@@ -281,11 +265,7 @@ exports.deleteHellocian = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get only activated Hellocians (for public /hire-talents)
- * @route   GET /api/hellocians/public
- * @access  Public
- */
+
 exports.getPublicHellocians = async (req, res) => {
   try {
     const hellocians = await User.find({ role: 'hellocian', isActivated: true, deletedAt: null, isBlocked: false })
@@ -303,11 +283,7 @@ exports.getPublicHellocians = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get only activated Hellocians (for gig assignment)
- * @route   GET /api/hellocians/active
- * @access  Private (admin, super-admin)
- */
+
 exports.getActiveHellocians = async (req, res) => {
   try {
     const hellocians = await User.find({ role: 'hellocian', isActivated: true })
@@ -325,11 +301,7 @@ exports.getActiveHellocians = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get a single Hellocian by ID
- * @route   GET /api/hellocians/:id
- * @access  Private (admin, super-admin)
- */
+
 exports.getHellocianById = async (req, res) => {
   try {
     const hellocian = await User.findOne({ _id: req.params.id, role: 'hellocian' })
@@ -346,11 +318,7 @@ exports.getHellocianById = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get all Trashed Hellocians
- * @route   GET /api/hellocians/trash
- * @access  Private (admin, super-admin)
- */
+
 exports.getTrashedHellocians = async (req, res) => {
   try {
     const hellocians = await User.find({ role: 'hellocian', deletedAt: { $ne: null } })
@@ -368,11 +336,7 @@ exports.getTrashedHellocians = async (req, res) => {
   }
 };
 
-/**
- * @desc    Restore a soft-deleted Hellocian
- * @route   PATCH /api/hellocians/:id/restore
- * @access  Private (admin, super-admin)
- */
+
 exports.restoreHellocian = async (req, res) => {
   try {
     const { id } = req.params;
@@ -402,11 +366,7 @@ exports.restoreHellocian = async (req, res) => {
   }
 };
 
-/**
- * @desc    Permanently delete a Hellocian
- * @route   DELETE /api/hellocians/:id/hard
- * @access  Private (admin, super-admin)
- */
+
 exports.hardDeleteHellocian = async (req, res) => {
   try {
     const { id } = req.params;
@@ -423,11 +383,7 @@ exports.hardDeleteHellocian = async (req, res) => {
   }
 };
 
-/**
- * @desc    Bulk Delete Hellocians
- * @route   POST /api/hellocians/bulk-delete
- * @access  Private (admin, super-admin)
- */
+
 exports.bulkDeleteHellocians = async (req, res) => {
   try {
     const { ids, action } = req.body; // action can be 'soft' or 'hard'

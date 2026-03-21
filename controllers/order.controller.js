@@ -746,9 +746,7 @@ exports.requestAdditionalPayment = async (req, res) => {
     // Also send socket notification to the client
     SocketService.notifyOrderUpdate(orderId, { additionalPayments: order.additionalPayments }, [order.clientId._id]);
     
-    // Notify the client via NotificationService
-    // disabled per user request
-    // await NotificationService.createNotification({ ... });
+    
     
     res.json({ success: true, message: 'Additional payment requested successfully', order });
   } catch (error) {

@@ -4,7 +4,7 @@ const adminController = require('../controllers/admin.controller');
 const { protect } = require('../middleware/auth.middleware');
 const { restrictTo } = require('../middleware/roleCheck.middleware');
 
-// Below endpoints are STRICTLY for Super-Admins to manage other Admins/Super-Admins
+
 
 // Super-Admin: list all active admins
 router.get(

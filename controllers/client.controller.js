@@ -3,11 +3,7 @@ const Order = require('../models/order.model');
 const EmailService = require('../services/email.service');
 const NotificationService = require('../services/notification.service');
 
-/**
- * @desc    Get all Clients (role: user)
- * @route   GET /api/clients
- * @access  Private (admin, super-admin)
- */
+
 exports.getClients = async (req, res) => {
   try {
     const clients = await User.find({ role: 'user', deletedAt: null })
@@ -37,11 +33,7 @@ exports.getClients = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get all Trashed Clients
- * @route   GET /api/clients/trash
- * @access  Private (admin, super-admin)
- */
+
 exports.getTrashedClients = async (req, res) => {
   try {
     const clients = await User.find({ role: 'user', deletedAt: { $ne: null } })
@@ -59,11 +51,7 @@ exports.getTrashedClients = async (req, res) => {
   }
 };
 
-/**
- * @desc    Toggle block status of a Client
- * @route   PATCH /api/clients/:id/toggle-block
- * @access  Private (admin, super-admin)
- */
+
 exports.toggleBlockClient = async (req, res) => {
   try {
     const { id } = req.params;
@@ -115,11 +103,7 @@ exports.toggleBlockClient = async (req, res) => {
   }
 };
 
-/**
- * @desc    Soft delete a Client
- * @route   DELETE /api/clients/:id
- * @access  Private (admin, super-admin)
- */
+
 exports.deleteClient = async (req, res) => {
   try {
     const { id } = req.params;
@@ -143,11 +127,7 @@ exports.deleteClient = async (req, res) => {
   }
 };
 
-/**
- * @desc    Restore a soft-deleted Client
- * @route   PATCH /api/clients/:id/restore
- * @access  Private (admin, super-admin)
- */
+
 exports.restoreClient = async (req, res) => {
   try {
     const { id } = req.params;
@@ -175,11 +155,7 @@ exports.restoreClient = async (req, res) => {
   }
 };
 
-/**
- * @desc    Permanently delete a Client
- * @route   DELETE /api/clients/:id/hard
- * @access  Private (admin, super-admin)
- */
+
 exports.hardDeleteClient = async (req, res) => {
   try {
     const { id } = req.params;
@@ -196,11 +172,7 @@ exports.hardDeleteClient = async (req, res) => {
   }
 };
 
-/**
- * @desc    Bulk Action (soft or hard delete) Clients
- * @route   POST /api/clients/bulk-delete
- * @access  Private (admin, super-admin)
- */
+
 exports.bulkDeleteClients = async (req, res) => {
   try {
     const { ids, action } = req.body;

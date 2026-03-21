@@ -31,20 +31,20 @@ exports.getDashboardStats = async (req, res) => {
       return { total, trend };
     };
 
-    // 1. Active Projects (In Progress)
+   
     const activeProjectsStats = await getStats(Order, { status: 'in-progress' });
 
-    // 2. Completed Projects
+
     const completedProjectsStats = await getStats(Order, { status: 'completed' });
 
-    // 3. Hellocians (Activated and not blocked)
+
     const hellociansStats = await getStats(User, { 
         role: 'hellocian', 
         isActivated: true, 
         isBlocked: false 
     });
 
-    // 4. Clients Registered (Activated and not blocked)
+
     const clientsStats = await getStats(User, { 
         role: 'user', 
         isActivated: true, 
@@ -108,7 +108,7 @@ exports.getWeeklyRevenue = async (req, res) => {
       }
     ]);
 
-    // Format for easier consumption: { date: 'YYYY-MM-DD', amount: totalRevenue }
+
     const formattedData = revenueStats.map(item => ({
       day: item._id.day,
       month: item._id.month,
@@ -149,12 +149,12 @@ exports.getIncomeStats = async (req, res) => {
       }
     ]);
 
-    // Format for frontend
+  
     const formattedData = incomeStats.map(item => ({
       year: item._id.year,
       month: item._id.month,
       income: item.totalIncome,
-      // Mocking expenses as 60-80% of income for visual consistency on the chart
+
       expenses: Math.round(item.totalIncome * (0.6 + Math.random() * 0.2))
     }));
 

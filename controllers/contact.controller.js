@@ -1,11 +1,7 @@
 const User = require('../models/user.model');
 const emailService = require('../services/email.service');
 
-/**
- * @desc    Submit contact form and notify admins
- * @route   POST /api/contact/submit
- * @access  Public
- */
+
 const submitContactForm = async (req, res) => {
   try {
     const { fullName, email, message } = req.body;
@@ -39,11 +35,7 @@ const submitContactForm = async (req, res) => {
             </div>
           `
         };
-        // Using nodemailer transporter logic from email.service if possible, 
-        // but email.service methods are specific to templates. 
-        // I'll add a generic sendCustomEmail method to EmailService or use a similar one if exists.
-        // Actually, looking at email.service.js, I can see it uses 'transporter.sendMail'.
-        // I'll add a new method to emailService for contact form.
+     
         return emailService.sendContactFormNotification(admin.email, admin.firstName, { fullName, email, message });
       });
 

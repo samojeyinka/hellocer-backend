@@ -125,36 +125,15 @@ const UserSchema = new mongoose.Schema({
     default: null
   },
 
-  // Preferences
-  emailNotifications: {
-    type: Boolean,
-    default: true
-  },
+  
   
   directMessages: {
     type: Boolean,
     default: false
   },
-  clientReview: {
-    type: Boolean,
-    default: false
-  },
-  clientNewRegistration: {
-    type: Boolean,
-    default: false
-  },
-  hellocianactivities: {
-    type: Boolean,
-    default: false
-  },
-  emailSupportTickets: {
-    type: Boolean,
-    default: false
-  },
-  projectUpdates: {
-    type: Boolean,
-    default: false
-  },
+ 
+
+ 
   // 2FA
   twoFactorSecret: {
     type: String,
