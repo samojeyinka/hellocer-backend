@@ -29,7 +29,7 @@ class EmailService {
       const { senderName, content, chatLink } = messageData;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `New Message from ${senderName}`,
         html: `
@@ -78,7 +78,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Admin Account Activation',
         html: `
@@ -116,7 +116,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Activate Your Account',
         html: `
@@ -147,7 +147,7 @@ class EmailService {
       if (!process.env.SMTP_USER || !process.env.SMTP_PASS) return;
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Welcome to Our Platform!',
         html: `
@@ -186,7 +186,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Password Reset Request',
         html: `
@@ -225,7 +225,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Account Settings Verification Code',
         html: `
@@ -263,7 +263,7 @@ class EmailService {
         : `Hi ${firstName}, a new order has been placed for one of your gigs.`;
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject,
         html: `
@@ -303,7 +303,7 @@ class EmailService {
   async sendAccountBlockedEmail(email, firstName, reason) {
     try {
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Account Suspended',
         html: `
@@ -334,7 +334,7 @@ class EmailService {
   async sendAccountUnblockedEmail(email, firstName) {
     try {
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Account Restored',
         html: `
@@ -362,7 +362,7 @@ class EmailService {
   async sendAccountRestoredEmail(email, firstName) {
     try {
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Account Restored',
         html: `
@@ -390,7 +390,7 @@ class EmailService {
   async sendAccountDeletedEmail(email, firstName) {
     try {
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'Account Deleted',
         html: `
@@ -429,7 +429,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: 'You have been invited as an Admin',
         html: `
@@ -468,7 +468,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `Hello ${firstName}, You have been invited as a Hellocian`,
         html: `
@@ -502,7 +502,7 @@ class EmailService {
       const dashboardLink = `${process.env.FRONTEND_URL}/admins/project-requests`;
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: adminEmail,
         replyTo: email,
         subject: `[New Project Request] ${projectName}`,
@@ -542,7 +542,7 @@ class EmailService {
       const { submitterName, projectName, replyContent, adminName } = data;
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: submitterEmail,
         subject: `Response to your project request: ${projectName}`,
         html: `
@@ -582,7 +582,7 @@ class EmailService {
       const { orderId, title, oldDate, newDate, reason } = orderDetails;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `Order Delivery Extended: ${title}`,
         html: `
@@ -630,7 +630,7 @@ class EmailService {
       const { orderId, title } = orderDetails;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `New Project Assignment: ${title}`,
         html: `
@@ -676,7 +676,7 @@ class EmailService {
       const { orderId, title } = orderDetails;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `Project Assignment Update: ${title}`,
         html: `
@@ -718,7 +718,7 @@ class EmailService {
       const joinLink = `${process.env.FRONTEND_URL}/call/${roomID}?type=${callType}`;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `Incoming ${callType} Call from ${callerName}`,
         html: `
@@ -762,7 +762,7 @@ class EmailService {
       const reviewLink = `${process.env.FRONTEND_URL}/clients/projects`;
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `How was your experience? Review your order: ${title}`,
         html: `
@@ -809,7 +809,7 @@ class EmailService {
       const reviewLink = `${process.env.FRONTEND_URL}/clients/projects`;
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `Friendly Reminder: Review your order for ${title}`,
         html: `
@@ -859,7 +859,7 @@ class EmailService {
       const { orderTitle, rating, comment, reviewerName } = reviewData;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `New ${rating}-Star Review for ${orderTitle}`,
         html: `
@@ -898,7 +898,7 @@ class EmailService {
       const { orderId, title, amount } = data;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `Payment Receipt: Additional Payment for "${title}"`,
         html: `
@@ -938,7 +938,7 @@ class EmailService {
       const { orderId, title, amount } = data;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `New Payment Received: Additional Payment for "${title}"`,
         html: `
@@ -979,7 +979,7 @@ class EmailService {
       const paymentLink = `${process.env.FRONTEND_URL}/payment/order/${orderId}/${paymentIndex}`;
 
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: email,
         subject: `Payment Request: Action Required for Order "${title}"`,
         html: `
@@ -1026,7 +1026,7 @@ class EmailService {
       const { fullName, email, message } = contactData;
       
       const mailOptions = {
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+        from: process.env.SMTP_USER,
         to: adminEmail,
         replyTo: email,
         subject: `[Contact Us] New message from ${fullName}`,
