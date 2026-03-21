@@ -81,7 +81,7 @@ exports.requestSettingsChange = async (req, res) => {
     user.settingsChangeCodeExpires = Date.now() + 15 * 60 * 1000; // 15 mins
     await user.save();
 
-    await EmailService.sendSettingsChangeOTP(user.email, user.firstName, otp);
+    EmailService.sendSettingsChangeOTP(user.email, user.firstName, otp).catch(err => console.error('Error sending settings change OTP:', err));
 
     res.json({ success: true, message: 'Verification code sent to your email' });
   } catch (error) {
@@ -274,8 +274,8 @@ exports.blockUser = async (req, res) => {
     user.blockedAt = new Date();
     await user.save();
 
-    // Send email notification
-    await EmailService.sendAccountBlockedEmail(user.email, user.firstName, reason);
+    // Send email notification (non-blocking)
+    EmailService.sendAccountBlockedEmail(user.email, user.firstName, reason).catch(err => console.error('Error sending account blocked email:', err));
 
     // Create notification
     await NotificationService.createNotification({

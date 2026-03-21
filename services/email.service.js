@@ -90,16 +90,6 @@ class EmailService {
     try {
       const activationLink = `${process.env.FRONTEND_URL}/activate?code=${activationCode}`;
       
-      if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 're_123') {
-        console.log('--- EMAIL DRY RUN ---');
-        console.log(`To: ${email}`);
-        console.log(`Subject: Activate Your Account`);
-        console.log(`Code: ${activationCode}`);
-        console.log(`Link: ${activationLink}`);
-        console.log('---------------------');
-        return { id: 'dry_run' };
-      }
-
       if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
         console.log('--- EMAIL DRY RUN ---');
         console.log(`To: ${email}`);
@@ -131,11 +121,9 @@ class EmailService {
         `
       };
 
-      const info = await transporter.sendMail(mailOptions);
-      return info;
+      return await transporter.sendMail(mailOptions);
     } catch (error) {
       console.error('Failed to send activation email:', error);
-      throw error;
     }
   }
 

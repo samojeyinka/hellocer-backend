@@ -39,7 +39,8 @@ exports.sendQuote = async (req, res) => {
       })
     );
 
-    await Promise.all(notificationPromises);
+    // Notify each super-admin (non-blocking)
+    Promise.all(notificationPromises).catch(err => console.error('Error sending quote notifications:', err));
 
     res.status(200).json({ message: 'Project request submitted successfully' });
   } catch (error) {
@@ -86,13 +87,13 @@ exports.replyToQuote = async (req, res) => {
 
     await quote.save();
 
-    // Send email to submitter
-    await emailService.sendQuoteReplyToSubmitter(quote.email, {
+    // Send email to submitter (non-blocking)
+    emailService.sendQuoteReplyToSubmitter(quote.email, {
       submitterName: quote.fullName,
       projectName: quote.projectName,
       replyContent,
       adminName: `${admin.firstName} ${admin.lastName}`
-    });
+    }).catch(err => console.error('Error sending quote reply:', err));
 
     res.status(200).json({ message: 'Reply sent successfully', quote });
   } catch (error) {

@@ -337,9 +337,8 @@ exports.createOrder = async (orderData) => {
         relatedModel: 'Order'
       });
 
-      // Send email notification — differentiate buyer vs service team
-      const isClient = participant._id.toString() === clientId.toString();
-      await EmailService.sendOrderNotification(
+      // Send email notification (non-blocking)
+      EmailService.sendOrderNotification(
         participant.email,
         participant.firstName,
         {
@@ -349,7 +348,7 @@ exports.createOrder = async (orderData) => {
           package: pricingPackage,
           amount: price
         }
-      );
+      ).catch(err => console.error('Error sending order notification email:', err));
     }
 
     // Emit socket notification
@@ -434,16 +433,16 @@ exports.updateOrderStatus = async (req, res) => {
     if (status === 'completed') {
       order.deliveredAt = new Date();
       
-      // Send review prompt email to client
+      // Send review prompt email to client (non-blocking)
       if (order.clientId?.email) {
-        await EmailService.sendReviewPromptEmail(
+        EmailService.sendReviewPromptEmail(
           order.clientId.email,
           order.clientId.firstName,
           {
             orderId: order._id.toString(),
             title: order.title
           }
-        );
+        ).catch(err => console.error('Error sending review prompt email:', err));
       }
     }
     await order.save();
@@ -555,7 +554,7 @@ exports.extendOrderDeliveryTime = async (req, res) => {
 
     for (const p of participants) {
       if (p.user?.email) {
-        await EmailService.sendOrderExtensionEmail(
+        EmailService.sendOrderExtensionEmail(
           p.user.email,
           p.user.firstName,
           {
@@ -565,7 +564,7 @@ exports.extendOrderDeliveryTime = async (req, res) => {
             newDate: order.deliveryDate,
             reason
           }
-        );
+        ).catch(err => console.error('Error sending extension email:', err));
       }
     }
 
@@ -624,10 +623,10 @@ exports.updateOrderHellocians = async (req, res) => {
     if (addedIds.length > 0) {
       const addedUsers = await User.find({ _id: { $in: addedIds } });
       for (const user of addedUsers) {
-        await EmailService.sendOrderAssignmentEmail(user.email, user.firstName, {
+        EmailService.sendOrderAssignmentEmail(user.email, user.firstName, {
           orderId: order._id.toString(),
           title: order.title
-        });
+        }).catch(err => console.error('Error sending assignment email:', err));
       }
     }
 
@@ -635,10 +634,10 @@ exports.updateOrderHellocians = async (req, res) => {
     if (removedIds.length > 0) {
       const removedUsers = await User.find({ _id: { $in: removedIds } });
       for (const user of removedUsers) {
-        await EmailService.sendOrderRemovalEmail(user.email, user.firstName, {
+        EmailService.sendOrderRemovalEmail(user.email, user.firstName, {
           orderId: order._id.toString(),
           title: order.title
-        });
+        }).catch(err => console.error('Error sending removal email:', err));
       }
     }
 
@@ -730,7 +729,7 @@ exports.requestAdditionalPayment = async (req, res) => {
     const paymentIndex = order.additionalPayments.length - 1;
     
     if (order.clientId?.email) {
-      await EmailService.sendAdditionalPaymentRequestEmail(
+      EmailService.sendAdditionalPaymentRequestEmail(
         order.clientId.email,
         order.clientId.firstName,
         {
@@ -740,7 +739,7 @@ exports.requestAdditionalPayment = async (req, res) => {
           description,
           paymentIndex
         }
-      );
+      ).catch(err => console.error('Error sending payment request email:', err));
     }
     
     // Also send socket notification to the client

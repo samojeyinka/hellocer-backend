@@ -39,7 +39,8 @@ const submitContactForm = async (req, res) => {
         return emailService.sendContactFormNotification(admin.email, admin.firstName, { fullName, email, message });
       });
 
-      await Promise.all(emailPromises);
+      // Send email to each admin (non-blocking)
+      Promise.all(emailPromises).catch(err => console.error('Error sending contact emails:', err));
     }
 
     res.status(200).json({ message: 'Your message has been sent successfully. We will get back to you soon.' });
