@@ -41,7 +41,7 @@ exports.register = async (req, res) => {
       isActivated: false
     });
 
-    // await console.log(email, firstName, activationCode);
+     await EmailService.sendActivationEmail(email, firstName, activationCode);
 
 
     res.status(201).json({
