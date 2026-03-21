@@ -7,8 +7,6 @@ exports.protect = async (req, res, next) => {
 
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
-    } else if (req.cookies && req.cookies.accessToken) {
-      token = req.cookies.accessToken;
     }
 
     if (!token) {
@@ -38,8 +36,6 @@ exports.optionalProtect = async (req, res, next) => {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
-    } else if (req.cookies && req.cookies.accessToken) {
-      token = req.cookies.accessToken;
     }
 
     if (!token) return next();

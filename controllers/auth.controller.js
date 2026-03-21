@@ -338,19 +338,10 @@ exports.login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    // Set cookies
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-      maxAge: rememberMe ? 60 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000 // Match refresh token
-    };
-
-    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000 });
-    res.cookie('refreshToken', refreshToken, cookieOptions);
-
     res.json({
       success: true,
+      accessToken,
+      refreshToken,
       user: user
     });
   } catch (error) {
@@ -400,7 +391,7 @@ exports.verify2FALogin = async (req, res) => {
 
 exports.refreshAccessToken = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    const { refreshToken } = req.body;
 
     if (!refreshToken) {
       return res.status(401).json({ error: 'Refresh token required' });
@@ -415,16 +406,9 @@ exports.refreshAccessToken = async (req, res) => {
 
     const newAccessToken = generateToken(user._id);
 
-    // Update access token cookie
-    res.cookie('accessToken', newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
-    });
-
     res.json({
-      success: true
+      success: true,
+      accessToken: newAccessToken
     });
   } catch (error) {
     console.error('Refresh token error:', error);
@@ -439,9 +423,6 @@ exports.logout = async (req, res) => {
       user.refreshToken = null;
       await user.save();
     }
-
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
 
     res.json({
       success: true,
