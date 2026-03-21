@@ -36,7 +36,7 @@ const submitContactForm = async (req, res) => {
           `
         };
      
-        // return emailService.sendContactFormNotification(admin.email, admin.firstName, { fullName, email, message });
+        return emailService.sendContactFormNotification(admin.email, admin.firstName, { fullName, email, message });
       });
 
       await Promise.all(emailPromises);
