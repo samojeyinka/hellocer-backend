@@ -342,7 +342,7 @@ exports.login = async (req, res) => {
       success: true,
       accessToken,
       refreshToken,
-      user: user
+      user
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -381,7 +381,7 @@ exports.verify2FALogin = async (req, res) => {
       success: true,
       accessToken,
       refreshToken,
-      user: user
+      user
     });
   } catch (error) {
     console.error('2FA Login Verification Error:', error);

@@ -157,7 +157,22 @@ const UserSchema = new mongoose.Schema({
     github: { type: String, default: "" }
   },
 }, { 
-  timestamps: true
+  timestamps: true,
+  toJSON: {
+    transform: function(doc, ret) {
+      delete ret.password;
+      delete ret.resetPasswordToken;
+      delete ret.resetPasswordExpires;
+      delete ret.passwordSetupToken;
+      delete ret.passwordSetupTokenExpires;
+      delete ret.activationCode;
+      delete ret.activationCodeExpires;
+      delete ret.twoFactorSecret;
+      delete ret.settingsChangeCode;
+      delete ret.settingsChangeCodeExpires;
+      return ret;
+    }
+  }
 });
 
 UserSchema.pre("save", async function(next) {
