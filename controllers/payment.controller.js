@@ -4,6 +4,9 @@ const { createOrder } = require('./order.controller');
 const Payment = require('../models/payment.model');
 const Order = require('../models/order.model');
 const NotificationService = require('../services/notification.service');
+const SocketService = require('../services/socket.service');
+const EmailService = require('../services/email.service');
+
 
 exports.createPayment = async (req, res) => {
   try {
@@ -319,9 +322,7 @@ exports.executeAdditionalPayment = async (req, res) => {
       
       // Notify via socket using SocketService manually since SocketService is imported
       // We will require it
-      const SocketService = require('../services/socket.service');
-      const EmailService = require('../services/email.service');
-      const NotificationService = require('../services/notification.service');
+
       
       SocketService.notifyOrderUpdate(order._id.toString(), { additionalPayments: order.additionalPayments }, [order.clientId?._id?.toString() || order.clientId.toString(), order.gigCreatorId._id.toString(), ...order.hellocians.map(h => h._id.toString())]);
 
@@ -357,47 +358,47 @@ exports.executeAdditionalPayment = async (req, res) => {
       await NotificationService.createNotification(clientNotif);
       await NotificationService.createBulkNotifications(teamNotifs);
 
-      if (req.user.email) {
-        await EmailService.sendAdditionalPaymentSuccessEmail(
-          req.user.email,
-          req.user.firstName,
-          {
-            orderId: order._id.toString(),
-            title: order.title,
-            amount: result.amount
-          }
-        );
-      }
+      // if (req.user.email) {
+      //   await EmailService.sendAdditionalPaymentSuccessEmail(
+      //     req.user.email,
+      //     req.user.firstName,
+      //     {
+      //       orderId: order._id.toString(),
+      //       title: order.title,
+      //       amount: result.amount
+      //     }
+      //   );
+      // }
 
       // Notify the gig creator
-      if (order.gigCreatorId?.email) {
-        await EmailService.sendAdditionalPaymentTeamNotification(
-          order.gigCreatorId.email,
-          order.gigCreatorId.firstName,
-          {
-            orderId: order._id.toString(),
-            title: order.title,
-            amount: result.amount
-          }
-        );
-      }
+      // if (order.gigCreatorId?.email) {
+      //   await EmailService.sendAdditionalPaymentTeamNotification(
+      //     order.gigCreatorId.email,
+      //     order.gigCreatorId.firstName,
+      //     {
+      //       orderId: order._id.toString(),
+      //       title: order.title,
+      //       amount: result.amount
+      //     }
+      //   );
+      // }
 
       // Notify all hellocians
-      if (order.hellocians && order.hellocians.length > 0) {
-        for (const hellocian of order.hellocians) {
-          if (hellocian.email) {
-            await EmailService.sendAdditionalPaymentTeamNotification(
-              hellocian.email,
-              hellocian.firstName,
-              {
-                orderId: order._id.toString(),
-                title: order.title,
-                amount: result.amount
-              }
-            );
-          }
-        }
-      }
+      // if (order.hellocians && order.hellocians.length > 0) {
+      //   for (const hellocian of order.hellocians) {
+      //     if (hellocian.email) {
+      //       await EmailService.sendAdditionalPaymentTeamNotification(
+      //         hellocian.email,
+      //         hellocian.firstName,
+      //         {
+      //           orderId: order._id.toString(),
+      //           title: order.title,
+      //           amount: result.amount
+      //         }
+      //       );
+      //     }
+      //   }
+      // }
 
       res.json({
         success: true,
@@ -418,4 +419,4 @@ exports.executeAdditionalPayment = async (req, res) => {
     console.error('Additional payment execution error:', error);
     res.status(500).json({ error: 'Failed to process payment', details: error.message });
   }
-};
+};

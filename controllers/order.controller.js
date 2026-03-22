@@ -338,17 +338,17 @@ exports.createOrder = async (orderData) => {
       });
 
       // Send email notification (non-blocking)
-      EmailService.sendOrderNotification(
-        participant.email,
-        participant.firstName,
-        {
-          isClient,
-          orderId: order._id,
-          title,
-          package: pricingPackage,
-          amount: price
-        }
-      ).catch(err => console.error('Error sending order notification email:', err));
+      // EmailService.sendOrderNotification(
+      //   participant.email,
+      //   participant.firstName,
+      //   {
+      //     isClient,
+      //     orderId: order._id,
+      //     title,
+      //     package: pricingPackage,
+      //     amount: price
+      //   }
+      // ).catch(err => console.error('Error sending order notification email:', err));
     }
 
     // Emit socket notification
