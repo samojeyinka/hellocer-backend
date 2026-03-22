@@ -250,15 +250,15 @@ exports.initiateCall = async (req, res) => {
       p => p._id.toString() !== callerId.toString()
     );
 
-    const emailPromises = otherParticipants.map(participant => 
-      EmailService.sendCallInvitation(participant.email, participant.firstName, {
-        callerName,
-        roomID,
-        callType
-      })
-    );
+    // const emailPromises = otherParticipants.map(participant => 
+    //   EmailService.sendCallInvitation(participant.email, participant.firstName, {
+    //     callerName,
+    //     roomID,
+    //     callType
+    //   })
+    // );
 
-    await Promise.all(emailPromises);
+    // await Promise.all(emailPromises);
 
     res.json({ success: true, message: 'Call invitations sent' });
   } catch (error) {
