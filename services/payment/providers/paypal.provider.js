@@ -4,8 +4,8 @@ class PayPalProvider {
   constructor() {
     paypal.configure({
       mode: process.env.PAYPAL_MODE || 'sandbox',
-      client_id:"AXx-t1Ty01p60TX-d35m4xSPLiS8wFVAQVPw4vlYevxG-0q_v6zfZTCnhyQTWAOGpfQOuKk6QcJ102tE",
-      client_secret:"EAvX2d5b8TTeqN0OArP7dIE14azUhrG8BykE3BWWX3kpoCzpvoCUAhzCxozmuP96tPFxOjdL13EC4lm9"
+      client_id:process.env.PAYPAL_CLIENT_ID,
+      client_secret:process.env.PAYPAL_CLIENT_SECRET
     });
   }
 
